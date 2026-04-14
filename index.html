@@ -33,6 +33,13 @@
             </div>
 
             <div>
+    <label class="block text-slate-500 text-xs font-black mb-2 uppercase tracking-widest">聯絡電話</label>
+    <input type="tel" id="studentPhone" 
+        class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition" 
+        placeholder="例如：0912345678">
+</div>
+
+            <div>
                 <label class="block text-slate-500 text-xs font-black mb-2 uppercase tracking-widest">所屬單位</label>
                 <input type="text" id="studentOrg" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="例如：資管系學會、熱舞社">
             </div>
@@ -48,19 +55,20 @@
     </div>
 
     <script>
-        function login() {
-            const name = document.getElementById('studentName').value.trim();
-            const id = document.getElementById('studentId').value.trim();
-            const org = document.getElementById('studentOrg').value.trim();
+    function login() {
+        const name = document.getElementById('studentName').value.trim();
+        const id = document.getElementById('studentId').value.trim();
+        const org = document.getElementById('studentOrg').value.trim();
+        const phone = document.getElementById('studentPhone').value.trim(); // 🌟 抓取電話
 
-            if(!name || !id || !org) return alert("⚠️ 請完整填寫資料，以便幹部審核連繫！");
+        if(!name || !id || !org || !phone) return alert("⚠️ 所有欄位都要填寫，方便後續聯絡喔！");
 
-            localStorage.setItem('studentName', name);
-            localStorage.setItem('studentId', id);
-            localStorage.setItem('studentOrg', org);
-            window.location.href = 'student.html';
-        }
-        document.onkeydown = function(e) { if(e.key === "Enter") login(); };
-    </script>
+        localStorage.setItem('studentName', name);
+        localStorage.setItem('studentId', id);
+        localStorage.setItem('studentOrg', org);
+        localStorage.setItem('studentPhone', phone); // 🌟 存入手機
+        window.location.href = 'student.html';
+    }
+</script>
 </body>
 </html>
