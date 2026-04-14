@@ -3,68 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>設備借用系統 - 審核制</title>
+    <title>設備借用系統 - 學生端</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; }
         #cartDrawer { transition: transform 0.3s ease-in-out; }
     </style>
 </head>
-<body class="bg-gray-100 p-4 md:p-8 font-sans relative min-h-screen">
+<body class="bg-gray-100 p-4 md:p-8 relative min-h-screen">
 
-    <div class="max-w-3xl mx-auto pb-20">
-        <div class="bg-blue-600 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl p-6 shadow-lg mb-6 flex justify-between items-center">
+    <div class="max-w-3xl mx-auto pb-24">
+        <div class="bg-blue-600 bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-3xl p-6 shadow-xl mb-6 flex justify-between items-center border-b-4 border-blue-800">
             <div>
-                <h1 class="text-2xl font-bold flex items-center"><span class="text-3xl mr-3">📦</span> 設備借用</h1>
-                <p class="mt-2 text-blue-100 text-sm" id="userInfo">載入中...</p>
+                <h1 class="text-2xl font-black flex items-center tracking-tight">
+                    <span class="text-3xl mr-3">📦</span> 設備借用系統
+                </h1>
+                <p class="mt-2 text-blue-100 text-xs font-medium opacity-90" id="userInfo">身份讀取中...</p>
             </div>
-            <button onclick="logout()" class="bg-blue-800 hover:bg-black px-5 py-2 rounded-lg text-sm font-bold shadow transition text-white">登出</button>
+            <button onclick="logout()" class="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl text-xs font-bold backdrop-blur-md transition border border-white/20">登出</button>
         </div>
 
-        <div class="bg-amber-50 border-l-4 border-amber-500 p-4 mb-6 rounded-r-xl shadow-sm">
-            <div class="flex">
-                <div class="flex-shrink-0 text-amber-500">⚠️</div>
-                <div class="ml-3">
-                    <p class="text-sm text-amber-800 font-bold">
-                        申請送出不代表預留成功，以幹部審核順序為準。
-                    </p>
-                </div>
+        <div class="bg-amber-50 border-l-4 border-amber-500 p-4 mb-6 rounded-r-2xl shadow-sm">
+            <div class="flex items-center">
+                <span class="text-amber-600 mr-3 text-xl">⚠️</span>
+                <p class="text-sm text-amber-900 font-bold">
+                    申請送出將「預扣庫存」，不代表預留成功，最終以幹部審核為準。
+                </p>
             </div>
         </div>
-<div id="statusSection" class="mb-6 hidden">
-    <div class="flex items-center justify-between mb-3">
-        <h2 class="text-lg font-bold text-gray-700 flex items-center">
-            <span class="mr-2">⏳</span> 我的申請進度
-        </h2>
-        <button onclick="fetchMyStatus()" class="text-xs text-blue-600 font-bold hover:underline">整理進度</button>
-    </div>
-    <div id="statusList" class="space-y-3">
+
+        <div id="statusSection" class="mb-8 hidden">
+            <div class="flex items-center justify-between mb-3 px-1">
+                <h2 class="text-sm font-black text-gray-500 uppercase tracking-widest flex items-center">
+                    <span class="mr-2 text-lg">⏳</span> 我的申請進度
+                </h2>
+                <button onclick="fetchMyStatus()" class="text-xs text-blue-600 font-bold hover:bg-blue-50 px-2 py-1 rounded transition">重新整理</button>
+            </div>
+            <div id="statusList" class="space-y-3">
+                </div>
         </div>
-</div>
-        <div class="bg-white rounded-2xl shadow-md p-6">
-            <h2 class="text-lg font-bold text-gray-700 mb-4 flex items-center"><span class="mr-2">🔍</span> 可借用設備</h2>
+
+        <div class="bg-white rounded-3xl shadow-sm border border-gray-200 p-6">
+            <h2 class="text-sm font-black text-gray-400 mb-6 uppercase tracking-widest flex items-center">
+                <span class="mr-2 text-lg">🔎</span> 可申請設備清單
+            </h2>
             <div id="equipmentList" class="space-y-4">
                 <div class="text-center text-gray-400 py-10">
-                    <p class="animate-pulse font-medium">📡 正在同步雲端庫存...</p>
+                    <p class="animate-pulse">📡 正在從雲端抓取最新庫存...</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <button onclick="toggleCart()" class="fixed bottom-8 right-8 bg-gray-900 hover:bg-black text-white p-4 rounded-full shadow-2xl transition transform hover:scale-105 z-40 flex items-center gap-2">
+    <button onclick="toggleCart()" class="fixed bottom-8 right-8 bg-gray-900 hover:bg-black text-white p-5 rounded-full shadow-2xl transition transform hover:scale-110 z-40 flex items-center justify-center">
         <span class="text-2xl">🛒</span>
-        <span id="cartBadge" class="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full hidden">0</span>
+        <span id="cartBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-black px-2 py-1 rounded-full border-2 border-white hidden">0</span>
     </button>
 
-    <div id="cartModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex justify-end">
-        <div id="cartDrawer" class="bg-white w-full max-w-md h-full shadow-2xl flex flex-col transform translate-x-full">
-            <div class="p-6 border-b flex justify-between items-center bg-gray-50">
-                <h2 class="text-xl font-bold text-gray-800">你的借用申請清單</h2>
-                <button onclick="toggleCart()" class="text-gray-400 hover:text-red-500 text-2xl font-bold">&times;</button>
+    <div id="cartModal" class="fixed inset-0 bg-black/60 hidden z-50 flex justify-end backdrop-blur-sm">
+        <div id="cartDrawer" class="bg-white w-full max-w-md h-full shadow-2xl flex flex-col transform translate-x-full border-l border-gray-100">
+            <div class="p-6 border-b flex justify-between items-center bg-gray-50/50">
+                <h2 class="text-xl font-bold text-gray-800">我的借用申請夾</h2>
+                <button onclick="toggleCart()" class="text-gray-300 hover:text-red-500 text-3xl font-light">&times;</button>
             </div>
-            <div id="cartItems" class="p-6 flex-1 overflow-y-auto space-y-4"></div>
-            <div class="p-6 border-t bg-gray-50">
-                <button onclick="submitCheckout()" id="checkoutBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg transition disabled:bg-gray-300">
-                    送出借用申請
+            <div id="cartItems" class="p-6 flex-1 overflow-y-auto space-y-4">
+                </div>
+            <div class="p-6 border-t bg-gray-50/80">
+                <button onclick="submitCheckout()" id="checkoutBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-lg transition transform active:scale-95 disabled:bg-gray-300 disabled:cursor-not-allowed">
+                    確認送出借用申請
                 </button>
             </div>
         </div>
@@ -77,139 +84,156 @@
         window.onload = function() {
             const name = localStorage.getItem('studentName');
             const id = localStorage.getItem('studentId');
-            if(name && id) {
-                document.getElementById('userInfo').innerText = `同學你好：${name} (${id})`;
+            const org = localStorage.getItem('studentOrg');
+            
+            if(name && id && org) {
+                document.getElementById('userInfo').innerText = `目前身份：${name} (${id}) — ${org}`;
             } else {
                 window.location.href = 'index.html';
+                return;
             }
             loadEquipments();
             loadCartFromStorage();
+            fetchMyStatus(); // 載入進度
         };
 
+        // 1. 抓取進度函式
+        function fetchMyStatus() {
+            const sid = localStorage.getItem('studentId');
+            const section = document.getElementById('statusSection');
+            const list = document.getElementById('statusList');
+
+            fetch(`${API_URL}/transactions`)
+                .then(res => res.json())
+                .then(data => {
+                    const myItems = Object.values(data).filter(t => t.租借人員學號 === sid);
+                    if (myItems.length > 0) {
+                        section.classList.remove('hidden');
+                        list.innerHTML = '';
+                        myItems.forEach(t => {
+                            const isPending = t.狀態 === "待審核";
+                            const statusColor = isPending ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-green-100 text-green-700 border-green-200";
+                            list.innerHTML += `
+                                <div class="flex justify-between items-center p-4 rounded-2xl border bg-white shadow-sm">
+                                    <div>
+                                        <p class="font-bold text-gray-800">${t.設備名稱}</p>
+                                        <p class="text-[10px] text-gray-400 font-mono">編號: #${t.交易編號} | ${t.借用時間}</p>
+                                    </div>
+                                    <span class="px-3 py-1 rounded-full text-[10px] font-black border ${statusColor}">
+                                        ${t.狀態}
+                                    </span>
+                                </div>`;
+                        });
+                    } else {
+                        section.classList.add('hidden');
+                    }
+                });
+        }
+
+        // 2. 設備載入與渲染
         function loadEquipments() {
             fetch(`${API_URL}/equipments`)
                 .then(res => res.json())
                 .then(data => renderEquipments(data))
-                .catch(err => {
-                    document.getElementById('equipmentList').innerHTML = `<p class="text-red-500 text-center font-bold">連線失敗</p>`;
-                });
+                .catch(err => alert("連線後端失敗"));
         }
 
         function renderEquipments(data) {
-            const listContainer = document.getElementById('equipmentList');
-            listContainer.innerHTML = '';
-
+            const container = document.getElementById('equipmentList');
+            container.innerHTML = '';
             for (const key in data) {
                 const item = data[key];
-                const realLimit = Math.min(item.剩餘數量, item.借用上限);
-                
-                let optionsHTML = '';
-                if (realLimit > 0) {
-                    for (let i = 1; i <= realLimit; i++) optionsHTML += `<option value="${i}">${i}</option>`;
+                const realMax = Math.min(item.剩餘數量, item.借用上限);
+                let options = '';
+                if(realMax > 0) {
+                    for(let i=1; i<=realMax; i++) options += `<option value="${i}">${i}</option>`;
                 } else {
-                    optionsHTML = `<option value="0">無庫存</option>`;
+                    options = `<option value="0">已無庫存</option>`;
                 }
 
-                const card = document.createElement('div');
-                card.className = "flex items-center justify-between p-5 border border-gray-100 rounded-xl hover:shadow-md transition bg-white";
-                card.innerHTML = `
-                    <div>
-                        <h3 class="text-lg font-bold text-gray-800">${item.設備名稱}</h3>
-                        <p class="text-sm text-gray-500 mt-1">
-                            可用庫存: <span class="${item.剩餘數量 > 0 ? 'text-blue-600 font-bold' : 'text-red-500'}">${item.剩餘數量}</span> 
-                        </p>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <select class="border border-gray-200 rounded-lg p-2 bg-gray-50" id="qty-${key}">${optionsHTML}</select>
-                        <button onclick="addToCart('${key}', '${item.設備名稱}', ${item.借用上限}, ${item.剩餘數量})" 
-                            class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2 rounded-lg shadow-sm transition disabled:bg-gray-300" 
-                            ${item.剩餘數量 === 0 ? 'disabled' : ''}>
-                            + 申請
-                        </button>
-                    </div>
-                `;
-                listContainer.appendChild(card);
+                container.innerHTML += `
+                    <div class="flex items-center justify-between p-5 border border-gray-100 rounded-2xl bg-white hover:bg-gray-50/50 transition">
+                        <div>
+                            <h3 class="font-bold text-gray-800">${item.設備名稱}</h3>
+                            <p class="text-xs text-gray-400 mt-1">可用庫存: <span class="${item.剩餘數量 > 0 ? 'text-blue-500 font-bold' : 'text-red-400'}">${item.剩餘數量}</span> | 單次限借: ${item.借用上限}</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <select id="qty-${key}" class="bg-gray-100 border-none rounded-xl p-2 text-sm font-bold outline-none">${options}</select>
+                            <button onclick="addToCart('${key}', '${item.設備名稱}', ${item.借用上限}, ${item.剩餘數量})" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition disabled:bg-gray-200"
+                                ${item.剩餘數量 === 0 ? 'disabled' : ''}>+ 申請</button>
+                        </div>
+                    </div>`;
             }
         }
 
+        // 3. 購物車核心邏輯
         function addToCart(id, name, limit, stock) {
             const qty = parseInt(document.getElementById(`qty-${id}`).value);
-            if (qty <= 0) return;
+            if(qty <= 0) return;
             const idx = cart.findIndex(i => i.id === id);
-            const currentInCart = idx !== -1 ? cart[idx].qty : 0;
-            const totalWanted = currentInCart + qty;
+            const total = (idx !== -1 ? cart[idx].qty : 0) + qty;
 
-            if (totalWanted > limit) return alert(`超過單次借用上限 (${limit})！`);
-            if (totalWanted > stock) return alert(`超過可用庫存 (${stock})！`);
+            if(total > limit) return alert(`超過單次申請上限 (${limit})`);
+            if(total > stock) return alert(`超過可用庫存 (${stock})`);
 
-            if (idx !== -1) {
-                cart[idx].qty = totalWanted;
-            } else {
-                cart.push({ id, name, qty });
-            }
+            if(idx !== -1) cart[idx].qty = total;
+            else cart.push({ id, name, qty });
+            
             saveCartToStorage();
             updateCartUI();
         }
 
         function updateCartItemQty(id, change) {
             const idx = cart.findIndex(i => i.id === id);
-            if (idx === -1) return;
-            const newQty = cart[idx].qty + change;
-            if (newQty <= 0) {
-                if(confirm("要移除此項申請嗎？")) removeFromCart(id);
-            } else {
-                cart[idx].qty = newQty;
-                saveCartToStorage();
-                updateCartUI();
-            }
-        }
-
-        function removeFromCart(id) {
-            cart = cart.filter(i => i.id !== id);
+            if(idx === -1) return;
+            const next = cart[idx].qty + change;
+            if(next <= 0) { if(confirm("移除此項申請？")) cart.splice(idx, 1); }
+            else { cart[idx].qty = next; }
             saveCartToStorage();
             updateCartUI();
         }
 
         function updateCartUI() {
             const badge = document.getElementById('cartBadge');
-            const container = document.getElementById('cartItems');
+            const items = document.getElementById('cartItems');
             const btn = document.getElementById('checkoutBtn');
+            
             badge.innerText = cart.length;
             cart.length > 0 ? badge.classList.remove('hidden') : badge.classList.add('hidden');
             btn.disabled = cart.length === 0;
-            container.innerHTML = cart.length === 0 ? `<p class="text-center text-gray-400 mt-10">申請清單是空的</p>` : '';
-            
+            items.innerHTML = cart.length === 0 ? `<p class="text-center text-gray-300 py-10 font-bold italic">清單空空如也...</p>` : '';
+
             cart.forEach(item => {
-                container.insertAdjacentHTML('beforeend', `
-                    <div class="flex justify-between items-center border-b border-gray-100 pb-4 mb-4 text-white">
+                items.innerHTML += `
+                    <div class="flex justify-between items-center border-b border-gray-50 pb-4">
                         <div class="flex-1">
                             <p class="font-bold text-gray-800">${item.name}</p>
-                            <div class="flex items-center mt-2 bg-gray-100 w-fit rounded-lg p-1">
-                                <button onclick="updateCartItemQty('${item.id}', -1)" class="w-8 h-8 bg-white rounded shadow text-red-500 font-bold">-</button>
-                                <span class="px-4 font-mono font-bold text-gray-700">${item.qty}</span>
-                                <button onclick="updateCartItemQty('${item.id}', 1)" class="w-8 h-8 bg-white rounded shadow text-blue-500 font-bold">+</button>
+                            <div class="flex items-center mt-2 bg-gray-50 w-fit rounded-xl p-1 border border-gray-100">
+                                <button onclick="updateCartItemQty('${item.id}', -1)" class="w-8 h-8 bg-white rounded-lg shadow-sm text-red-500 font-bold">-</button>
+                                <span class="px-4 font-mono font-bold text-gray-600">${item.qty}</span>
+                                <button onclick="updateCartItemQty('${item.id}', 1)" class="w-8 h-8 bg-white rounded-lg shadow-sm text-blue-500 font-bold">+</button>
                             </div>
                         </div>
-                        <button onclick="removeFromCart('${item.id}')" class="text-gray-300 hover:text-red-500 transition ml-4">
-                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </button>
-                    </div>
-                `);
+                        <button onclick="cart.splice(cart.findIndex(i=>i.id==='${item.id}'),1);saveCartToStorage();updateCartUI();" class="text-gray-200 hover:text-red-400 ml-4 transition">&times;</button>
+                    </div>`;
             });
         }
 
+        // 4. 🚀 最終送出申請 (對接系會社團名稱)
         function submitCheckout() {
             const sid = localStorage.getItem('studentId');
             const sname = localStorage.getItem('studentName');
+            const sorg = localStorage.getItem('studentOrg');
             const btn = document.getElementById('checkoutBtn');
 
             const payload = {
                 "租借人員學號": sid,
-                "租借人員姓名": sname,
+                "租借人員姓名": `${sname} (${sorg})`, // 🌟 併入姓名傳送
                 "設備清單": cart
             };
 
-            btn.innerText = "⏳ 正在傳送申請...";
+            btn.innerText = "⏳ 正在傳送雲端申請...";
             btn.disabled = true;
 
             fetch(`${API_URL}/borrow_batch`, {
@@ -220,23 +244,24 @@
             .then(res => res.json())
             .then(data => {
                 if(data.成功) {
-                    alert("✅ 申請已送出！\n請靜候幹部審核，審核通過後即可至櫃檯領取。");
+                    alert("✅ 申請已送出！\n庫存已為您預扣，請等候幹部審核通過後領取。");
                     cart = [];
                     saveCartToStorage();
                     updateCartUI();
                     toggleCart();
                     loadEquipments();
+                    fetchMyStatus(); // 刷新進度
                 } else {
-                    alert("❌ 申請失敗：" + data.訊息);
+                    alert("❌ 失敗：" + data.訊息);
                 }
             })
-            .catch(err => alert("連線異常"))
             .finally(() => {
-                btn.innerText = "送出借用申請";
+                btn.innerText = "確認送出借用申請";
                 btn.disabled = false;
             });
         }
 
+        // 基礎功能
         function toggleCart() {
             const m = document.getElementById('cartModal');
             const d = document.getElementById('cartDrawer');
@@ -254,58 +279,6 @@
             if(s) { cart = JSON.parse(s); updateCartUI(); }
         }
         function logout() { localStorage.clear(); window.location.href = 'index.html'; }
-        // 🌟 核心：抓取該學生的申請進度
-function fetchMyStatus() {
-    const sid = localStorage.getItem('studentId');
-    const statusSection = document.getElementById('statusSection');
-    const statusList = document.getElementById('statusList');
-
-    fetch(`${API_URL}/transactions`)
-        .then(res => res.json())
-        .then(data => {
-            const allTrans = Object.values(data);
-            // 只過濾出「這名學生」且「非已歸還/已駁回」的紀錄
-            const myItems = allTrans.filter(t => t.租借人員學號 === sid);
-
-            if (myItems.length > 0) {
-                statusSection.classList.remove('hidden');
-                statusList.innerHTML = '';
-                
-                myItems.forEach(t => {
-                    const isPending = t.狀態 === "待審核";
-                    const statusClass = isPending ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-green-100 text-green-700 border-green-200";
-                    
-                    const div = document.createElement('div');
-                    div.className = `flex justify-between items-center p-4 rounded-xl border ${isPending ? 'bg-amber-50/50' : 'bg-white shadow-sm'}`;
-                    div.innerHTML = `
-                        <div>
-                            <span class="text-xs font-mono text-gray-400">#${t.交易編號}</span>
-                            <p class="font-bold text-gray-800">${t.設備名稱}</p>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <span class="px-3 py-1 rounded-full text-[10px] font-black border ${statusClass}">
-                                ${t.狀態}
-                            </span>
-                        </div>
-                    `;
-                    statusList.appendChild(div);
-                });
-            } else {
-                statusSection.classList.add('hidden');
-            }
-        });
-}
-
-// 🌟 修改原本的 window.onload，加入讀取進度
-const originalOnload = window.onload;
-window.onload = function() {
-    originalOnload(); // 執行原本的登入檢查與設備載入
-    fetchMyStatus();  // 額外執行進度檢查
-};
-
-// 🌟 修改原本的 submitCheckout 成功後的動作
-// 在 alert("✅ 申請已送出！") 之後，多加一行：
-// fetchMyStatus();
     </script>
 </body>
 </html>
