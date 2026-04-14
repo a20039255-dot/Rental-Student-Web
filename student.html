@@ -85,6 +85,15 @@
 
             for (const key in data) {
                 const item = data[key];
+                
+                // 🌟 第一步：根據雲端的「借用上限」動態產生選單內容
+                let optionsHTML = '';
+                const maxLimit = item.借用上限 || 1; // 如果試算表沒寫，預設最少借 1 個
+                
+                for (let i = 1; i <= maxLimit; i++) {
+                    optionsHTML += `<option value="${i}">${i}</option>`;
+                }
+
                 const card = document.createElement('div');
                 card.className = "flex items-center justify-between p-5 border border-gray-100 rounded-xl hover:shadow-md transition duration-200 bg-white";
                 
@@ -98,13 +107,11 @@
                         </p>
                     </div>
                     <div class="flex items-center gap-3">
-                        <select class="border border-gray-200 rounded-lg p-2 bg-gray-50 outline-none" id="qty-${key}">
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
+                        <select class="border border-gray-200 rounded-lg p-2 bg-gray-50 outline-none text-gray-700" id="qty-${key}">
+                            ${optionsHTML}
                         </select>
                         <button onclick="addToCart('${key}', '${item.設備名稱}', ${item.借用上限})" 
-                            class="bg-blue-500 hover:bg-blue-600 text-white font-bold px-5 py-2 rounded-lg shadow-sm transition disabled:bg-gray-300"
+                            class="bg-blue-500 hover:bg-blue-600 text-white font-bold px-5 py-2 rounded-lg shadow-sm transition disabled:bg-gray-300 disabled:cursor-not-allowed"
                             ${item.剩餘數量 === 0 ? 'disabled' : ''}>
                             + 加入
                         </button>
@@ -153,10 +160,27 @@
         }
 
         // 🛒 從購物車移除
-        function removeFromCart(id) {
-            cart = cart.filter(item => item.id !== id);
-            saveCartToStorage();
-            updateCartUI();
+        // 🛒 調整購物車內數量 (+1 或 -1)
+        function updateCartItemQty(id, change) {
+            const itemIndex = cart.findIndex(item => item.id === id);
+            if (itemIndex === -1) return;
+
+            // 抓出該設備在清單中的借用上限（這裡我們假設從 UI 邏輯中取得，或你可以從原始資料庫中帶入）
+            // 為了安全，我們預設最高不超過 5 (你可以根據需求調整)
+            const newQty = cart[itemIndex].qty + change;
+
+            if (newQty <= 0) {
+                // 如果減到 0，就詢問是否刪除
+                if(confirm(`確定要移除 ${cart[itemIndex].name} 嗎？`)) {
+                    removeFromCart(id);
+                }
+            } else if (newQty > 10) { // 這裡可以設一個硬上限防止學生惡搞
+                alert("已達最大借用數量限制！");
+            } else {
+                cart[itemIndex].qty = newQty;
+                saveCartToStorage();
+                updateCartUI();
+            }
         }
 
         // 🛒 更新購物車畫面
@@ -183,15 +207,48 @@
             }
 
             cart.forEach(item => {
+                function updateCartUI() {
+            const badge = document.getElementById('cartBadge');
+            const cartItems = document.getElementById('cartItems');
+            const checkoutBtn = document.getElementById('checkoutBtn');
+
+            if (cart.length > 0) {
+                badge.innerText = cart.length;
+                badge.classList.remove('hidden');
+                checkoutBtn.disabled = false;
+            } else {
+                badge.classList.add('hidden');
+                checkoutBtn.disabled = true;
+            }
+
+            cartItems.innerHTML = '';
+            if (cart.length === 0) {
+                cartItems.innerHTML = `<p class="text-center text-gray-400 mt-10">購物車空空的耶，去選些設備吧！</p>`;
+                return;
+            }
+
+            cart.forEach(item => {
                 cartItems.innerHTML += `
-                    <div class="flex justify-between items-center border-b pb-3">
-                        <div>
+                    <div class="flex justify-between items-center border-b pb-4 mb-4">
+                        <div class="flex-1">
                             <p class="font-bold text-gray-800">${item.name}</p>
-                            <p class="text-sm text-gray-500">數量: ${item.qty}</p>
+                            <div class="flex items-center mt-2 bg-gray-100 w-fit rounded-lg p-1">
+                                <button onclick="updateCartItemQty('${item.id}', -1)" class="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm hover:bg-red-50 text-red-500 font-bold">-</button>
+                                
+                                <span class="px-4 font-mono font-bold text-gray-700">${item.qty}</span>
+                                
+                                <button onclick="updateCartItemQty('${item.id}', 1)" class="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm hover:bg-blue-50 text-blue-500 font-bold">+</button>
+                            </div>
                         </div>
-                        <button onclick="removeFromCart('${item.id}')" class="text-red-500 hover:bg-red-50 px-3 py-1 rounded">刪除</button>
+                        <button onclick="removeFromCart('${item.id}')" class="ml-4 text-gray-400 hover:text-red-500 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="Link19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
                     </div>
                 `;
+            });
+        }
             });
         }
 
