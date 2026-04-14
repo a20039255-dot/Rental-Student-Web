@@ -6,7 +6,6 @@
     <title>設備借用系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 讓抽屜平滑滑出的動畫 */
         #cartDrawer { transition: transform 0.3s ease-in-out; }
     </style>
 </head>
@@ -42,10 +41,9 @@
                 <h2 class="text-xl font-bold text-gray-800">你的借用清單</h2>
                 <button onclick="toggleCart()" class="text-gray-400 hover:text-red-500 text-2xl font-bold">&times;</button>
             </div>
-            <div id="cartItems" class="p-6 flex-1 overflow-y-auto space-y-4">
-                </div>
+            <div id="cartItems" class="p-6 flex-1 overflow-y-auto space-y-4"></div>
             <div class="p-6 border-t bg-gray-50">
-                <button onclick="submitCheckout()" id="checkoutBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg transition disabled:bg-gray-300 disabled:cursor-not-allowed">
+                <button onclick="submitCheckout()" id="checkoutBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg transition disabled:bg-gray-300">
                     確認送出借用單
                 </button>
             </div>
@@ -68,50 +66,74 @@
             loadCartFromStorage();
         };
 
-        // 1. 抓取設備資料
         function loadEquipments() {
             fetch(`${API_URL}/equipments`)
                 .then(res => res.json())
                 .then(data => renderEquipments(data))
                 .catch(err => {
-                    document.getElementById('equipmentList').innerHTML = `<p class="text-red-500 text-center font-bold">連線失敗，請檢查後端</p>`;
+                    document.getElementById('equipmentList').innerHTML = `<p class="text-red-500 text-center font-bold">連線失敗</p>`;
                 });
         }
 
-        // 2. 渲染主頁面清單
+        // 🌟 修正後的動態渲染邏輯
         function renderEquipments(data) {
             const listContainer = document.getElementById('equipmentList');
             listContainer.innerHTML = '';
 
             for (const key in data) {
                 const item = data[key];
+                
+                // 💡 關鍵：選單最大值不能超過庫存，也不能超過借用上限
+                const realLimit = Math.min(item.剩餘數量, item.借用上限);
+                
                 let optionsHTML = '';
-                const max = item.借用上限 || 1;
-                for (let i = 1; i <= max; i++) optionsHTML += `<option value="${i}">${i}</option>`;
+                if (realLimit > 0) {
+                    for (let i = 1; i <= realLimit; i++) {
+                        optionsHTML += `<option value="${i}">${i}</option>`;
+                    }
+                } else {
+                    optionsHTML = `<option value="0">無庫存</option>`;
+                }
 
                 const card = document.createElement('div');
                 card.className = "flex items-center justify-between p-5 border border-gray-100 rounded-xl hover:shadow-md transition bg-white";
                 card.innerHTML = `
                     <div>
                         <h3 class="text-lg font-bold text-gray-800">${item.設備名稱}</h3>
-                        <p class="text-sm text-gray-500 mt-1">庫存: <span class="${item.剩餘數量 > 0 ? 'text-blue-600 font-bold' : 'text-red-500'}">${item.剩餘數量}</span> | 限借: ${item.借用上限}</p>
+                        <p class="text-sm text-gray-500 mt-1">
+                            庫存: <span class="${item.剩餘數量 > 0 ? 'text-blue-600 font-bold' : 'text-red-500'}">${item.剩餘數量}</span> 
+                            | 限借: ${item.借用上限}
+                        </p>
                     </div>
                     <div class="flex items-center gap-3">
-                        <select class="border border-gray-200 rounded-lg p-2 bg-gray-50" id="qty-${key}">${optionsHTML}</select>
-                        <button onclick="addToCart('${key}', '${item.設備名稱}', ${item.借用上限})" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2 rounded-lg shadow-sm transition disabled:bg-gray-300" ${item.剩餘數量 === 0 ? 'disabled' : ''}>+ 加入</button>
+                        <select class="border border-gray-200 rounded-lg p-2 bg-gray-50" id="qty-${key}">
+                            ${optionsHTML}
+                        </select>
+                        <button onclick="addToCart('${key}', '${item.設備名稱}', ${item.借用上限}, ${item.剩餘數量})" 
+                            class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2 rounded-lg shadow-sm transition disabled:bg-gray-300" 
+                            ${item.剩餘數量 === 0 ? 'disabled' : ''}>
+                            + 加入
+                        </button>
                     </div>
                 `;
                 listContainer.appendChild(card);
             }
         }
 
-        // 3. 購物車邏輯
-        function addToCart(id, name, max) {
+        function addToCart(id, name, limit, stock) {
             const qty = parseInt(document.getElementById(`qty-${id}`).value);
+            if (qty <= 0) return;
+
             const idx = cart.findIndex(i => i.id === id);
+            const currentInCart = idx !== -1 ? cart[idx].qty : 0;
+            const totalWanted = currentInCart + qty;
+
+            // 再次驗證不超過上限且不超過庫存
+            if (totalWanted > limit) return alert(`超過該設備借用上限 (${limit})！`);
+            if (totalWanted > stock) return alert(`超過目前剩餘庫存 (${stock})！`);
+
             if (idx !== -1) {
-                if (cart[idx].qty + qty > max) return alert("超過借用上限！");
-                cart[idx].qty += qty;
+                cart[idx].qty = totalWanted;
             } else {
                 cart.push({ id, name, qty });
             }
@@ -125,9 +147,8 @@
             const newQty = cart[idx].qty + change;
             if (newQty <= 0) {
                 if(confirm("要移除此項目嗎？")) removeFromCart(id);
-            } else if (newQty > 10) {
-                alert("已達單項借用上限");
             } else {
+                // 這裡簡單防呆，實際限制以加入時為準
                 cart[idx].qty = newQty;
                 saveCartToStorage();
                 updateCartUI();
@@ -163,14 +184,13 @@
                             </div>
                         </div>
                         <button onclick="removeFromCart('${item.id}')" class="text-gray-300 hover:text-red-500 transition ml-4">
-                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
                     </div>
                 `);
             });
         }
 
-        // 4. 送出結帳
         function submitCheckout() {
             const sid = localStorage.getItem('studentId');
             const sname = localStorage.getItem('studentName');
@@ -210,7 +230,6 @@
             });
         }
 
-        // 基礎功能
         function toggleCart() {
             const m = document.getElementById('cartModal');
             const d = document.getElementById('cartDrawer');
