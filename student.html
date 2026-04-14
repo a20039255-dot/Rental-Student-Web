@@ -108,20 +108,40 @@
                     if (myItems.length > 0) {
                         section.classList.remove('hidden');
                         list.innerHTML = '';
-                        myItems.forEach(t => {
-                            const isPending = t.狀態 === "待審核";
-                            const color = isPending ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-green-100 text-green-700 border-green-200";
-                            list.innerHTML += `
-                                <div class="flex justify-between items-center p-4 rounded-2xl border bg-white shadow-sm">
-                                    <div>
-                                        <p class="font-bold text-gray-800">${t.設備名稱}</p>
-                                        <p class="text-[10px] text-gray-400">#${t.交易編號} | ${t.借用時間}</p>
-                                    </div>
-                                    <span class="px-3 py-1 rounded-full text-[10px] font-black border ${color}">${t.狀態}</span>
-                                </div>`;
-                        });
-                    } else { section.classList.add('hidden'); }
-                });
+                        // 🌟 重新設計的簡潔進度清單渲染
+        myItems.forEach(t => {
+            const isPending = t.狀態 === "待審核";
+            // 根據狀態選擇顏色主題
+            const themeClass = isPending 
+                ? "border-amber-100 bg-amber-50/30" 
+                : "border-emerald-100 bg-emerald-50/30";
+            const tagClass = isPending
+                ? "bg-amber-100 text-amber-600"
+                : "bg-emerald-100 text-emerald-600";
+
+            div.className = `flex items-center justify-between p-3 px-5 rounded-2xl border-2 ${themeClass} shadow-sm transition-all hover:shadow-md`;
+            div.innerHTML = `
+                <div class="flex flex-col">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-black text-slate-700">${t.設備名稱}</span>
+                        <span class="text-[9px] font-bold px-2 py-0.5 rounded-full ${tagClass} tracking-widest uppercase">
+                            ${t.狀態}
+                        </span>
+                    </div>
+                    <div class="flex gap-3 mt-1">
+                        <span class="text-[10px] text-slate-400 font-mono">#${t.交易編號}</span>
+                        <span class="text-[10px] text-slate-300">|</span>
+                        <span class="text-[10px] text-slate-400 font-medium">${t.借用時間.split(' ')[1]} 送出</span>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    ${isPending 
+                        ? '<span class="text-lg animate-pulse">⏳</span>' 
+                        : '<span class="text-lg text-emerald-500">✓</span>'}
+                </div>
+            `;
+            statusList.appendChild(div);
+        });
         }
 
         // 2. 載入設備
