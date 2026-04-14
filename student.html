@@ -3,48 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>設備借用系統</title>
+    <title>設備借用</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100">
-
-    <div id="app">
+<body class="bg-gray-100 p-4 md:p-8 font-sans">
+    <div class="max-w-2xl mx-auto">
+        
+        <div class="bg-blue-500 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl p-6 shadow-lg mb-6 flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold flex items-center"><span class="text-3xl mr-3">📦</span> 設備借用</h1>
+                <p class="mt-2 text-blue-100 text-sm" id="userInfo">同學你好</p>
+            </div>
+            <button onclick="logout()" class="bg-blue-700 hover:bg-blue-800 px-5 py-2 rounded-lg text-sm font-bold shadow transition">登出</button>
         </div>
 
+        <div class="bg-white rounded-2xl shadow-md p-6">
+            <h2 class="text-lg font-bold text-gray-700 mb-4 flex items-center"><span class="mr-2">🔍</span> 可借用設備</h2>
+            
+            <div id="equipmentList" class="space-y-4">
+                <div class="text-center text-gray-400 py-10">
+                    <p class="animate-pulse">📡 正在同步雲端庫存...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // 🌟 正確且無斜槓的後端大腦網址
+        // 🌟 最精準的 Google Cloud 後端大腦網址
         const API_URL = "https://student-api-174932950003.asia-east1.run.app";
 
-        // 頁面載入時自動去抓資料
+        // 頁面一打開就自動執行
         window.onload = function() {
+            // 從記憶體抓取登入時填寫的學號姓名
+            const name = localStorage.getItem('studentName');
+            const id = localStorage.getItem('studentId');
+            if(name && id) {
+                document.getElementById('userInfo').innerText = `同學你好：${name} (${id})`;
+            }
+            
+            // 呼叫大腦抓資料
             loadEquipments();
         };
 
         function loadEquipments() {
-            console.log("👉 準備發送 API 請求！");
-            console.log("🔗 完整請求網址：", `${API_URL}/equipments`);
+            console.log("👉 準備發送 API 請求！網址：", `${API_URL}/equipments`);
 
             fetch(`${API_URL}/equipments`)
                 .then(response => {
-                    console.log("📡 收到後端回應，狀態碼：", response.status);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
+                    if (!response.ok) throw new Error(`連線狀態錯誤: ${response.status}`);
                     return response.json();
                 })
                 .then(data => {
-                    console.log("✅ 成功拿到資料：", data);
-                    // 將資料傳給你原本寫好的渲染函數
+                    console.log("✅ 成功拿到雲端資料：", data);
                     renderEquipments(data);
                 })
                 .catch(error => {
-                    console.error("❌ 連線徹底失敗，原因：", error);
-                    alert("連線失敗，請按 F12 查看 Console");
+                    console.error("❌ 連線失敗：", error);
+                    document.getElementById('equipmentList').innerHTML = 
+                        `<div class="text-red-500 text-center py-6 bg-red-50 rounded-xl font-bold">連線失敗，請確認後端是否正常運作<br><span class="text-sm font-normal text-gray-500">按 F12 查看 Console 錯誤訊息</span></div>`;
                 });
         }
 
+        // 把抓到的資料「畫」到網頁上
         function renderEquipments(data) {
-            // 這裡放你原本把 JSON 資料畫成網頁清單的迴圈程式碼
+            const listContainer = document.getElementById('equipmentList');
+            listContainer.innerHTML = ''; // 清空原本的載入中動畫
+
+            // 遍歷所有設備 (例如 E01, E02...)
+            for (const key in data) {
+                const item = data[key];
+                
+                // 建立一個新的 HTML 區塊
+                const card = document.createElement('div');
+                card.className = "flex items-center justify-between p-5 border border-gray-100 rounded-xl hover:shadow-md transition duration-200 bg-white";
+                
+                card.innerHTML = `
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800">${item.設備名稱}</h3>
+                        <p class="text-sm text-gray-500 mt-1">
+                            庫存: <span class="${item.剩餘數量 > 0 ? 'text-blue-600 font-bold' : 'text-red-500 font-bold'}">${item.剩餘數量}</span> 
+                            <span class="mx-1 text-gray-300">|</span> 
+                            限借: ${item.借用上限}
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <select class="border border-gray-200 rounded-lg p-2 bg-gray-50 outline-none text-gray-700" id="qty-${key}">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                        </select>
+                        <button onclick="borrow('${key}', '${item.設備名稱}')" 
+                            class="bg-blue-500 hover:bg-blue-600 text-white font-bold px-5 py-2 rounded-lg shadow-sm transition disabled:bg-gray-300 disabled:cursor-not-allowed"
+                            ${item.剩餘數量 === 0 ? 'disabled' : ''}>
+                            + 加入
+                        </button>
+                    </div>
+                `;
+                listContainer.appendChild(card);
+            }
+        }
+
+        function borrow(id, name) {
+            const qty = document.getElementById(`qty-${id}`).value;
+            // 這裡未來可以串接寫入 Google Sheets 的 POST API
+            alert(`準備借用: ${name} (數量: ${qty}) \n(點擊確認送出)`);
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'index.html';
         }
     </script>
 </body>
