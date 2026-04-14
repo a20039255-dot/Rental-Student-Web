@@ -210,14 +210,14 @@
             }
         }
 
-        // 🛒 結帳送出
+        // 🛒 結帳送出 (進化版：真實串接 POST API)
         function submitCheckout() {
             const studentId = localStorage.getItem('studentId');
             const studentName = localStorage.getItem('studentName');
             
             if (!studentId || cart.length === 0) return;
 
-            // 這裡準備了一包完美的 JSON 要送給大腦
+            // 準備要送給大腦的 JSON 資料包
             const payload = {
                 學號: studentId,
                 姓名: studentName,
@@ -226,14 +226,45 @@
 
             console.log("👉 準備送出表單給大腦：", payload);
             
-            // 這邊放一個彈窗模擬送出成功
-            alert(`✅ 送出成功！\n\n學號：${studentId}\n姓名：${studentName}\n共借用了 ${cart.length} 項設備。\n\n（註：這裡未來可以加上 fetch POST 傳給 Cloud Run）`);
-            
-            // 清空購物車
-            cart = [];
-            saveCartToStorage();
-            updateCartUI();
-            toggleCart();
+            // 把按鈕變成「送出中」，防止學生狂按重複送出
+            const checkoutBtn = document.getElementById('checkoutBtn');
+            checkoutBtn.innerText = "📡 訂單送出中...";
+            checkoutBtn.disabled = true;
+
+            // 🚀 發射 POST 請求給後端！(注意網址後面加上了 /borrow，這是我們預計給後端開的新通道)
+            fetch(`${API_URL}/borrow`, {
+                method: 'POST', // 告訴大腦這是一筆「寫入」請求
+                headers: {
+                    'Content-Type': 'application/json' // 告訴大腦我們傳的是 JSON 格式
+                },
+                body: JSON.stringify(payload) // 把資料包打包成字串送出
+            })
+            .then(response => {
+                if (!response.ok) throw new Error(`伺服器回應錯誤：${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                console.log("✅ 後端處理成功回應：", data);
+                alert(`✅ 送出成功！\n\n學號：${studentId}\n姓名：${studentName}\n共借用了 ${cart.length} 項設備。\n請記得於約定時間至學生會領取！`);
+                
+                // 清空購物車
+                cart = [];
+                saveCartToStorage();
+                updateCartUI();
+                toggleCart();
+                
+                // 重新抓取最新的設備庫存 (因為剛才借成功了，庫存應該要減少)
+                loadEquipments(); 
+            })
+            .catch(error => {
+                console.error('❌ 送出失敗：', error);
+                alert("❌ 送出失敗！\n可能是網路不穩或庫存不足，請重新整理後再試一次，或聯繫系統幹部。");
+            })
+            .finally(() => {
+                // 不管成功或失敗，最後都把按鈕狀態恢復
+                checkoutBtn.innerText = "確認送出借用單";
+                checkoutBtn.disabled = false;
+            });
         }
 
         // 記憶體存取小幫手
