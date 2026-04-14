@@ -254,6 +254,58 @@
             if(s) { cart = JSON.parse(s); updateCartUI(); }
         }
         function logout() { localStorage.clear(); window.location.href = 'index.html'; }
+        // 🌟 核心：抓取該學生的申請進度
+function fetchMyStatus() {
+    const sid = localStorage.getItem('studentId');
+    const statusSection = document.getElementById('statusSection');
+    const statusList = document.getElementById('statusList');
+
+    fetch(`${API_URL}/transactions`)
+        .then(res => res.json())
+        .then(data => {
+            const allTrans = Object.values(data);
+            // 只過濾出「這名學生」且「非已歸還/已駁回」的紀錄
+            const myItems = allTrans.filter(t => t.租借人員學號 === sid);
+
+            if (myItems.length > 0) {
+                statusSection.classList.remove('hidden');
+                statusList.innerHTML = '';
+                
+                myItems.forEach(t => {
+                    const isPending = t.狀態 === "待審核";
+                    const statusClass = isPending ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-green-100 text-green-700 border-green-200";
+                    
+                    const div = document.createElement('div');
+                    div.className = `flex justify-between items-center p-4 rounded-xl border ${isPending ? 'bg-amber-50/50' : 'bg-white shadow-sm'}`;
+                    div.innerHTML = `
+                        <div>
+                            <span class="text-xs font-mono text-gray-400">#${t.交易編號}</span>
+                            <p class="font-bold text-gray-800">${t.設備名稱}</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="px-3 py-1 rounded-full text-[10px] font-black border ${statusClass}">
+                                ${t.狀態}
+                            </span>
+                        </div>
+                    `;
+                    statusList.appendChild(div);
+                });
+            } else {
+                statusSection.classList.add('hidden');
+            }
+        });
+}
+
+// 🌟 修改原本的 window.onload，加入讀取進度
+const originalOnload = window.onload;
+window.onload = function() {
+    originalOnload(); // 執行原本的登入檢查與設備載入
+    fetchMyStatus();  // 額外執行進度檢查
+};
+
+// 🌟 修改原本的 submitCheckout 成功後的動作
+// 在 alert("✅ 申請已送出！") 之後，多加一行：
+// fetchMyStatus();
     </script>
 </body>
 </html>
