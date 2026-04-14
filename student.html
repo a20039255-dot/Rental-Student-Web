@@ -217,56 +217,50 @@
             
             if (!studentId || cart.length === 0) return;
 
-            // 準備要送給大腦的 JSON 資料包
+            // 🌟 關鍵對齊：後端 Python 要求的欄位名稱是「租借人員學號」、「租借人員姓名」、「設備清單」
             const payload = {
-                學號: studentId,
-                姓名: studentName,
-                借用清單: cart
+                "租借人員學號": studentId,
+                "租借人員姓名": studentName,
+                "設備清單": cart // 這裡的 cart 裡面已經有 [{id: 'E01', name: '...', qty: 1}, ...]
             };
 
-            console.log("👉 準備送出表單給大腦：", payload);
+            console.log("👉 正式送出訂單到後端 /borrow_batch：", payload);
             
-            // 把按鈕變成「送出中」，防止學生狂按重複送出
             const checkoutBtn = document.getElementById('checkoutBtn');
-            checkoutBtn.innerText = "📡 訂單送出中...";
+            checkoutBtn.innerText = "📡 正在寫入雲端試算表...";
             checkoutBtn.disabled = true;
 
-            // 🚀 發射 POST 請求給後端！(注意網址後面加上了 /borrow，這是我們預計給後端開的新通道)
-            fetch(`${API_URL}/borrow`, {
-                method: 'POST', // 告訴大腦這是一筆「寫入」請求
-                headers: {
-                    'Content-Type': 'application/json' // 告訴大腦我們傳的是 JSON 格式
-                },
-                body: JSON.stringify(payload) // 把資料包打包成字串送出
+            // 🚀 網址改成後端真正的通道：/borrow_batch
+            fetch(`${API_URL}/borrow_batch`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
             })
             .then(response => {
-                if (!response.ok) throw new Error(`伺服器回應錯誤：${response.status}`);
+                if (!response.ok) throw new Error(`連線失敗 status: ${response.status}`);
                 return response.json();
             })
             .then(data => {
-                console.log("✅ 後端處理成功回應：", data);
-                alert(`✅ 送出成功！\n\n學號：${studentId}\n姓名：${studentName}\n共借用了 ${cart.length} 項設備。\n請記得於約定時間至學生會領取！`);
-                
-                // 清空購物車
-                cart = [];
-                saveCartToStorage();
-                updateCartUI();
-                toggleCart();
-                
-                // 重新抓取最新的設備庫存 (因為剛才借成功了，庫存應該要減少)
-                loadEquipments(); 
+                if(data.成功) {
+                    alert(`✅ 借用成功！\n資料已寫入試算表，請至櫃檯領取設備。`);
+                    cart = [];
+                    saveCartToStorage();
+                    updateCartUI();
+                    toggleCart();
+                    loadEquipments(); // 刷新網頁上的最新庫存
+                } else {
+                    alert("❌ 借用失敗：" + (data.訊息 || "未知錯誤"));
+                }
             })
             .catch(error => {
-                console.error('❌ 送出失敗：', error);
-                alert("❌ 送出失敗！\n可能是網路不穩或庫存不足，請重新整理後再試一次，或聯繫系統幹部。");
+                console.error('❌ POST 錯誤：', error);
+                alert("❌ 無法連線至後端大腦，請檢查網路或聯繫幹部。");
             })
             .finally(() => {
-                // 不管成功或失敗，最後都把按鈕狀態恢復
                 checkoutBtn.innerText = "確認送出借用單";
                 checkoutBtn.disabled = false;
             });
         }
-
         // 記憶體存取小幫手
         function saveCartToStorage() {
             localStorage.setItem('shoppingCart', JSON.stringify(cart));
