@@ -6,8 +6,8 @@
     <title>設備借用</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 p-4 md:p-8 font-sans">
-    <div class="max-w-2xl mx-auto">
+<body class="bg-gray-100 p-4 md:p-8 font-sans relative min-h-screen">
+    <div class="max-w-3xl mx-auto pb-20">
         
         <div class="bg-blue-500 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl p-6 shadow-lg mb-6 flex justify-between items-center">
             <div>
@@ -28,52 +28,63 @@
         </div>
     </div>
 
-    <script>
-        // 🌟 最精準的 Google Cloud 後端大腦網址
-        const API_URL = "https://student-api-174932950003.asia-east1.run.app";
+    <button onclick="toggleCart()" class="fixed bottom-8 right-8 bg-gray-900 hover:bg-black text-white p-4 rounded-full shadow-2xl transition transform hover:scale-105 z-40 flex items-center gap-2">
+        <span class="text-2xl">🛒</span>
+        <span id="cartBadge" class="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full hidden">0</span>
+    </button>
 
-        // 頁面一打開就自動執行
+    <div id="cartModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex justify-end">
+        <div class="bg-white w-full max-w-md h-full shadow-2xl flex flex-col transform transition-transform translate-x-full" id="cartDrawer">
+            <div class="p-6 border-b flex justify-between items-center bg-gray-50">
+                <h2 class="text-xl font-bold text-gray-800">你的借用清單</h2>
+                <button onclick="toggleCart()" class="text-gray-500 hover:text-red-500 font-bold text-xl">&times;</button>
+            </div>
+            <div id="cartItems" class="p-6 flex-1 overflow-y-auto space-y-4">
+                </div>
+            <div class="p-6 border-t bg-gray-50">
+                <button onclick="submitCheckout()" id="checkoutBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-md transition disabled:bg-gray-400">
+                    確認送出借用單
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 🌟 你的 API 網址
+        const API_URL = "https://student-api-174932950003.asia-east1.run.app";
+        
+        // 🛒 購物車陣列 (存放目前選的設備)
+        let cart = [];
+
         window.onload = function() {
-            // 從記憶體抓取登入時填寫的學號姓名
             const name = localStorage.getItem('studentName');
             const id = localStorage.getItem('studentId');
             if(name && id) {
                 document.getElementById('userInfo').innerText = `同學你好：${name} (${id})`;
+            } else {
+                // 如果沒名字代表沒登入，踢回首頁
+                window.location.href = 'index.html';
             }
             
-            // 呼叫大腦抓資料
             loadEquipments();
+            loadCartFromStorage(); // 載入之前可能選到一半的購物車
         };
 
         function loadEquipments() {
-            console.log("👉 準備發送 API 請求！網址：", `${API_URL}/equipments`);
-
             fetch(`${API_URL}/equipments`)
-                .then(response => {
-                    if (!response.ok) throw new Error(`連線狀態錯誤: ${response.status}`);
-                    return response.json();
-                })
-                .then(data => {
-                    console.log("✅ 成功拿到雲端資料：", data);
-                    renderEquipments(data);
-                })
+                .then(response => response.json())
+                .then(data => renderEquipments(data))
                 .catch(error => {
-                    console.error("❌ 連線失敗：", error);
-                    document.getElementById('equipmentList').innerHTML = 
-                        `<div class="text-red-500 text-center py-6 bg-red-50 rounded-xl font-bold">連線失敗，請確認後端是否正常運作<br><span class="text-sm font-normal text-gray-500">按 F12 查看 Console 錯誤訊息</span></div>`;
+                    document.getElementById('equipmentList').innerHTML = `<div class="text-red-500 text-center py-6 font-bold">連線失敗</div>`;
                 });
         }
 
-        // 把抓到的資料「畫」到網頁上
         function renderEquipments(data) {
             const listContainer = document.getElementById('equipmentList');
-            listContainer.innerHTML = ''; // 清空原本的載入中動畫
+            listContainer.innerHTML = ''; 
 
-            // 遍歷所有設備 (例如 E01, E02...)
             for (const key in data) {
                 const item = data[key];
-                
-                // 建立一個新的 HTML 區塊
                 const card = document.createElement('div');
                 card.className = "flex items-center justify-between p-5 border border-gray-100 rounded-xl hover:shadow-md transition duration-200 bg-white";
                 
@@ -87,13 +98,13 @@
                         </p>
                     </div>
                     <div class="flex items-center gap-3">
-                        <select class="border border-gray-200 rounded-lg p-2 bg-gray-50 outline-none text-gray-700" id="qty-${key}">
+                        <select class="border border-gray-200 rounded-lg p-2 bg-gray-50 outline-none" id="qty-${key}">
                             <option value="1">1</option>
                             <option value="2">2</option>
                             <option value="3">3</option>
                         </select>
-                        <button onclick="borrow('${key}', '${item.設備名稱}')" 
-                            class="bg-blue-500 hover:bg-blue-600 text-white font-bold px-5 py-2 rounded-lg shadow-sm transition disabled:bg-gray-300 disabled:cursor-not-allowed"
+                        <button onclick="addToCart('${key}', '${item.設備名稱}', ${item.借用上限})" 
+                            class="bg-blue-500 hover:bg-blue-600 text-white font-bold px-5 py-2 rounded-lg shadow-sm transition disabled:bg-gray-300"
                             ${item.剩餘數量 === 0 ? 'disabled' : ''}>
                             + 加入
                         </button>
@@ -103,10 +114,138 @@
             }
         }
 
-        function borrow(id, name) {
-            const qty = document.getElementById(`qty-${id}`).value;
-            // 這裡未來可以串接寫入 Google Sheets 的 POST API
-            alert(`準備借用: ${name} (數量: ${qty}) \n(點擊確認送出)`);
+        // 🛒 加入購物車邏輯
+        function addToCart(id, name, maxLimit) {
+            const qty = parseInt(document.getElementById(`qty-${id}`).value);
+            
+            // 檢查購物車是不是已經有這個東西了
+            const existingItemIndex = cart.findIndex(item => item.id === id);
+            
+            if (existingItemIndex !== -1) {
+                // 如果已經有了，就把數量加上去
+                let newQty = cart[existingItemIndex].qty + qty;
+                if (newQty > maxLimit) {
+                    alert(`超過限借數量囉！此設備最多只能借 ${maxLimit} 個`);
+                    return;
+                }
+                cart[existingItemIndex].qty = newQty;
+            } else {
+                // 如果是新的，就推入陣列
+                if (qty > maxLimit) {
+                    alert(`超過限借數量囉！此設備最多只能借 ${maxLimit} 個`);
+                    return;
+                }
+                cart.push({ id: id, name: name, qty: qty });
+            }
+
+            saveCartToStorage();
+            updateCartUI();
+            
+            // 給個小提示
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = "已加入！";
+            btn.classList.replace('bg-blue-500', 'bg-green-500');
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.classList.replace('bg-green-500', 'bg-blue-500');
+            }, 1000);
+        }
+
+        // 🛒 從購物車移除
+        function removeFromCart(id) {
+            cart = cart.filter(item => item.id !== id);
+            saveCartToStorage();
+            updateCartUI();
+        }
+
+        // 🛒 更新購物車畫面
+        function updateCartUI() {
+            const badge = document.getElementById('cartBadge');
+            const cartItems = document.getElementById('cartItems');
+            const checkoutBtn = document.getElementById('checkoutBtn');
+
+            // 1. 更新紅點點數量
+            if (cart.length > 0) {
+                badge.innerText = cart.length;
+                badge.classList.remove('hidden');
+                checkoutBtn.disabled = false;
+            } else {
+                badge.classList.add('hidden');
+                checkoutBtn.disabled = true;
+            }
+
+            // 2. 畫出購物車裡面的清單
+            cartItems.innerHTML = '';
+            if (cart.length === 0) {
+                cartItems.innerHTML = `<p class="text-center text-gray-400 mt-10">購物車空空的耶，去選些設備吧！</p>`;
+                return;
+            }
+
+            cart.forEach(item => {
+                cartItems.innerHTML += `
+                    <div class="flex justify-between items-center border-b pb-3">
+                        <div>
+                            <p class="font-bold text-gray-800">${item.name}</p>
+                            <p class="text-sm text-gray-500">數量: ${item.qty}</p>
+                        </div>
+                        <button onclick="removeFromCart('${item.id}')" class="text-red-500 hover:bg-red-50 px-3 py-1 rounded">刪除</button>
+                    </div>
+                `;
+            });
+        }
+
+        // 🛒 打開/關閉購物車彈窗
+        function toggleCart() {
+            const modal = document.getElementById('cartModal');
+            const drawer = document.getElementById('cartDrawer');
+            
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                // 一點點延遲來做滑出動畫
+                setTimeout(() => drawer.classList.remove('translate-x-full'), 10);
+            } else {
+                drawer.classList.add('translate-x-full');
+                setTimeout(() => modal.classList.add('hidden'), 300); // 等動畫跑完再隱藏
+            }
+        }
+
+        // 🛒 結帳送出
+        function submitCheckout() {
+            const studentId = localStorage.getItem('studentId');
+            const studentName = localStorage.getItem('studentName');
+            
+            if (!studentId || cart.length === 0) return;
+
+            // 這裡準備了一包完美的 JSON 要送給大腦
+            const payload = {
+                學號: studentId,
+                姓名: studentName,
+                借用清單: cart
+            };
+
+            console.log("👉 準備送出表單給大腦：", payload);
+            
+            // 這邊放一個彈窗模擬送出成功
+            alert(`✅ 送出成功！\n\n學號：${studentId}\n姓名：${studentName}\n共借用了 ${cart.length} 項設備。\n\n（註：這裡未來可以加上 fetch POST 傳給 Cloud Run）`);
+            
+            // 清空購物車
+            cart = [];
+            saveCartToStorage();
+            updateCartUI();
+            toggleCart();
+        }
+
+        // 記憶體存取小幫手
+        function saveCartToStorage() {
+            localStorage.setItem('shoppingCart', JSON.stringify(cart));
+        }
+        function loadCartFromStorage() {
+            const saved = localStorage.getItem('shoppingCart');
+            if (saved) {
+                cart = JSON.parse(saved);
+                updateCartUI();
+            }
         }
 
         function logout() {
