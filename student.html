@@ -40,6 +40,11 @@
             <div class="p-6 border-b flex justify-between items-center bg-gray-50">
                 <h2 class="text-xl font-bold text-gray-800">你的借用清單</h2>
                 <button onclick="toggleCart()" class="text-gray-400 hover:text-red-500 text-2xl font-bold">&times;</button>
+                <div id="myStatusSection" class="mb-6 hidden">
+    <h2 class="text-lg font-bold text-gray-700 mb-3 flex items-center"><span>⏳</span> 我的申請進度</h2>
+    <div id="statusList" class="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-2">
+        </div>
+</div>
             </div>
             <div id="cartItems" class="p-6 flex-1 overflow-y-auto space-y-4"></div>
             <div class="p-6 border-t bg-gray-50">
@@ -212,17 +217,18 @@
             })
             .then(res => res.json())
             .then(data => {
-                if(data.成功) {
-                    alert("✅ 借用成功！請至櫃檯領取。");
-                    cart = [];
-                    saveCartToStorage();
-                    updateCartUI();
-                    toggleCart();
-                    loadEquipments();
-                } else {
-                    alert("❌ 失敗：" + data.訊息);
-                }
-            })
+    if(data.成功) {
+        // 🌟 修改這裡的文字
+        alert("✅ 申請已送出！\n請稍候片刻，待幹部審核通過後即可至櫃檯領取。");
+        cart = [];
+        saveCartToStorage();
+        updateCartUI();
+        toggleCart();
+        loadEquipments(); // 刷新頁面
+    } else {
+        alert("❌ 申請失敗：" + data.訊息);
+    }
+})
             .catch(err => alert("連線異常"))
             .finally(() => {
                 btn.innerText = "確認送出借用單";
