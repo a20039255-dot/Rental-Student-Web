@@ -5,70 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>設備借用系統 - 學生登入</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
-        body { font-family: 'Noto Sans TC', sans-serif; }
-    </style>
 </head>
-<body class="bg-slate-900 flex items-center justify-center min-h-screen p-4">
-
-    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 md:p-10 transition-all">
-        <div class="text-center mb-8">
-            <div class="inline-block p-4 bg-blue-50 rounded-2xl mb-4">
-                <span class="text-4xl">🎓</span>
-            </div>
-            <h1 class="text-2xl font-black text-slate-800 tracking-tight">設備借用系統</h1>
-            <p class="text-slate-400 text-sm mt-2 font-medium">請填寫基本資料以開始預約</p>
-        </div>
-
-        <div class="space-y-5">
-            <div>
-                <label class="block text-slate-500 text-xs font-black mb-2 uppercase tracking-widest">學生姓名</label>
-                <input type="text" id="studentName" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="例如：王小明">
-            </div>
-
-            <div>
-                <label class="block text-slate-500 text-xs font-black mb-2 uppercase tracking-widest">學生學號</label>
-                <input type="text" id="studentId" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition font-mono" placeholder="例如：D1101234">
-            </div>
-
-            <div>
-    <label class="block text-slate-500 text-xs font-black mb-2 uppercase tracking-widest">聯絡電話</label>
-    <input type="tel" id="studentPhone" 
-        class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition" 
-        placeholder="例如：0912345678">
-</div>
-
-            <div>
-                <label class="block text-slate-500 text-xs font-black mb-2 uppercase tracking-widest">所屬單位</label>
-                <input type="text" id="studentOrg" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="例如：資管系學會、熱舞社">
-            </div>
-            
-            <button onclick="login()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl shadow-lg shadow-blue-200 transition transform active:scale-95 mt-4">
-                進入借用系統
-            </button>
-        </div>
-
-        <div class="mt-8 text-center border-t border-slate-50 pt-6">
-            <p class="text-slate-300 text-[10px] tracking-widest uppercase font-bold">© 2026 學生會設備部 數位化系統</p>
+<body class="bg-slate-50 flex items-center justify-center min-h-screen p-6">
+    <div class="bg-white p-8 rounded-[2.5rem] shadow-xl w-full max-w-md border border-slate-100">
+        <h2 class="text-2xl font-black text-slate-800 mb-6">學生借用登入</h2>
+        <div class="space-y-4">
+            <input type="text" id="sName" placeholder="真實姓名" class="w-full p-4 bg-slate-50 rounded-2xl outline-none">
+            <input type="text" id="sOrg" placeholder="單位 (如：資管系會)" class="w-full p-4 bg-slate-50 rounded-2xl outline-none">
+            <input type="text" id="sId" maxlength="9" placeholder="學號 (9 碼)" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-mono">
+            <input type="tel" id="sPhone" maxlength="10" placeholder="電話 (10 碼)" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-mono">
+            <button onclick="login()" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition">開始借用</button>
         </div>
     </div>
-
     <script>
-    function login() {
-        const name = document.getElementById('studentName').value.trim();
-        const id = document.getElementById('studentId').value.trim();
-        const org = document.getElementById('studentOrg').value.trim();
-        const phone = document.getElementById('studentPhone').value.trim(); // 🌟 抓取電話
+        function login() {
+            const name = document.getElementById('sName').value.trim();
+            const org = document.getElementById('sOrg').value.trim();
+            const id = document.getElementById('sId').value.trim();
+            const phone = document.getElementById('sPhone').value.trim();
 
-        if(!name || !id || !org || !phone) return alert("⚠️ 所有欄位都要填寫，方便後續聯絡喔！");
-
-        localStorage.setItem('studentName', name);
-        localStorage.setItem('studentId', id);
-        localStorage.setItem('studentOrg', org);
-        localStorage.setItem('studentPhone', phone); // 🌟 存入手機
-        window.location.href = 'student.html';
-    }
-</script>
+            if (!name || !org || id.length !== 9 || phone.length !== 10) {
+                return alert("請檢查：\n1. 所有欄位必填\n2. 學號須為 9 碼\n3. 電話須為 10 碼");
+            }
+            localStorage.setItem('studentName', name);
+            localStorage.setItem('studentOrg', org);
+            localStorage.setItem('studentId', id);
+            localStorage.setItem('studentPhone', phone);
+            window.location.href = 'student.html';
+        }
+    </script>
 </body>
 </html>
