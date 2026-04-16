@@ -153,9 +153,10 @@
             
             fetch(`${API_URL}/transactions`).then(res => res.json()).then(data => {
                 // 🌟 核心修改：只抓取該學生的紀錄，並且過濾掉「已歸還」與「已駁回」
+                // 🌟 改為正序 (a - b)
                 const myItems = Object.values(data)
                     .filter(t => t.租借人員學號 === sid && t.狀態 !== "已歸還" && t.狀態 !== "已駁回")
-                    .sort((a,b) => b.交易編號 - a.交易編號);
+                    .sort((a, b) => a.交易編號 - b.交易編號);
 
                 if (myItems.length > 0) {
                     list.innerHTML = '';
