@@ -144,27 +144,54 @@
             else { d.classList.add('translate-x-full'); setTimeout(() => m.classList.add('hidden'), 300); }
         }
 
-        // --- 進度查詢 ---
-       // --- 進度查詢 ---
+        // --- 進度查詢 (支援 14 天逾期紅燈警示) ---
         function fetchMyStatus() {
             const sid = localStorage.getItem('studentId');
             const list = document.getElementById('statusList');
             list.innerHTML = '<div class="text-center py-10 text-slate-400 font-bold animate-pulse">📡 讀取中...</div>';
             
             fetch(`${API_URL}/transactions`).then(res => res.json()).then(data => {
-                // 🌟 核心修改：只抓取該學生的紀錄，並且過濾掉「已歸還」與「已駁回」
-                // 🌟 改為正序 (a - b)
                 const myItems = Object.values(data)
                     .filter(t => t.租借人員學號 === sid && t.狀態 !== "已歸還" && t.狀態 !== "已駁回")
-                    .sort((a, b) => a.交易編號 - b.交易編號);
+                    .sort((a,b) => a.交易編號 - b.交易編號);
 
                 if (myItems.length > 0) {
                     list.innerHTML = '';
+                    
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+
                     myItems.forEach(t => {
                         const isPending = t.狀態 === "待審核";
-                        const theme = isPending ? "border-amber-100 bg-amber-50/40" : "border-blue-100 bg-blue-50/40";
-                        const tag = isPending ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700";
-                        const icon = isPending ? '<span class="animate-pulse">⏳</span>' : '📦';
+                        const isBorrowing = t.狀態 === "借用中";
+                        
+                        // 🌟 逾期計算邏輯
+                        const MAX_DAYS = 14; // ⬅️ 這裡也要改成跟管理端一樣的數字喔！
+                        
+                        let isOverdue = false;
+                        if (isBorrowing && t.借用時間) {
+                            const bDate = new Date(t.借用時間.replace(/-/g, '/'));
+                            bDate.setHours(0, 0, 0, 0);
+                            const diffDays = Math.floor((today - bDate) / (1000 * 60 * 60 * 24));
+                            if (diffDays > MAX_DAYS) isOverdue = true;
+                        }
+
+                        let theme = "border-blue-100 bg-blue-50/40";
+                        let tag = "bg-blue-100 text-blue-700";
+                        let icon = '📦';
+                        let warnText = '';
+                        
+                        if (isPending) {
+                            theme = "border-amber-100 bg-amber-50/40";
+                            tag = "bg-amber-100 text-amber-700";
+                            icon = '<span class="animate-pulse">⏳</span>';
+                        } else if (isOverdue) {
+                            // 逾期樣式
+                            theme = "border-rose-300 bg-rose-50/70";
+                            tag = "bg-rose-500 text-white font-bold animate-pulse";
+                            icon = '<span class="text-rose-500">⚠️</span>';
+                            warnText = '<div class="text-[10px] text-rose-500 font-black mt-1">請盡速歸還設備！</div>';
+                        }
                         
                         list.innerHTML += `
                             <div class="flex items-center justify-between p-4 rounded-2xl border ${theme}">
@@ -174,6 +201,7 @@
                                         <span class="text-[9px] font-black px-2 py-0.5 rounded-md ${tag} uppercase tracking-tighter">${t.狀態}</span>
                                     </div>
                                     <div class="text-[10px] text-slate-400 font-medium font-mono tracking-tight">ID: #${t.交易編號}</div>
+                                    ${warnText}
                                 </div>
                                 <div class="text-xl">${icon}</div>
                             </div>`;
@@ -182,15 +210,6 @@
                     list.innerHTML = `<div class="text-center py-10 text-slate-300 italic font-bold">目前沒有進行中的借用</div>`; 
                 }
             });
-        }
-        // --- 購物車與結帳 ---
-        function addToCart(id, name, limit, stock) {
-            const qty = parseInt(document.getElementById(`qty-${id}`).value);
-            const idx = cart.findIndex(i => i.id === id);
-            const total = (idx !== -1 ? cart[idx].qty : 0) + qty;
-            if(total > limit || total > stock) return alert("超過申請上限或庫存不足！");
-            if(idx !== -1) cart[idx].qty = total; else cart.push({ id, name, qty });
-            saveCartToStorage(); updateCartUI();
         }
 
         function updateCartUI() {
