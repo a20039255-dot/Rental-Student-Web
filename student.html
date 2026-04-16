@@ -285,7 +285,7 @@
             const total = (idx !== -1 ? cart[idx].qty : 0) + qty;
             
             // 🌟 這裡使用 availableQuota (剩餘配額) 來把關
-            if(total > availableQuota) return alert(`❌ 超過配額！這項設備您最多只能再借 ${availableQuota} 個。`);
+            if(total > availableQuota) return alert(`❌ 超過配額！這項設備您最多只能借 ${availableQuota} 個。`);
             if(total > stock) return alert("❌ 現場庫存不足！");
             
             if(idx !== -1) cart[idx].qty = total; else cart.push({ id, name, qty });
