@@ -3,61 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>設備部數位系統</title>
+    <title>設備借用系統 - 數位服務</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+        /* 🌟 移除了寫死的淺色背景，讓 Tailwind 全權接管顏色 */
+        body { font-family: 'Noto Sans TC', sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .drawer { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    </style>
 </head>
 <body class="bg-slate-900 text-slate-100 font-sans antialiased">
-    <header class="bg-slate-800 border-b border-slate-700 shadow-md px-6 py-4 flex justify-between items-center sticky top-0 z-50">
+
+    <div id="maintenanceOverlay" class="fixed inset-0 bg-slate-900 z-[9999] hidden flex-col items-center justify-center text-white px-6 text-center backdrop-blur-md">
+        <span class="text-7xl mb-6 animate-bounce">🚧</span>
+        <h1 class="text-3xl font-black mb-4 tracking-widest">系統維護中</h1>
+        <p class="text-slate-400 text-sm font-bold bg-slate-800 px-6 py-3 rounded-2xl">設備部正在進行系統升級，請稍後再回來！</p>
+    </div>
+
+    <div id="announcementBanner" class="bg-rose-600 text-white text-xs font-bold px-4 py-3 flex justify-between items-center hidden shadow-md relative z-40">
         <div class="flex items-center gap-3">
-            <span class="text-2xl">📦</span>
+            <span class="text-base">📢</span>
+            <span id="announcementText" class="tracking-wide">這裡會顯示公告內容</span>
+        </div>
+        <button onclick="document.getElementById('announcementBanner').style.display='none'" class="text-white/80 hover:text-white text-lg leading-none">&times;</button>
+    </div>
+
+    <div class="max-w-5xl mx-auto px-4 py-6">
+        <header class="flex justify-between items-center mb-8 bg-slate-800 p-4 rounded-3xl text-white shadow-lg border border-slate-700">
             <div>
-                <h1 class="text-lg font-black text-white">設備部數位系統</h1>
-                <p class="text-xs text-slate-400" id="userInfo"></p>
+                <h1 class="text-lg md:text-xl font-black text-white tracking-tight flex items-center">
+                    <span class="bg-blue-600 text-white p-2 rounded-xl mr-3 shadow-sm text-sm">📦</span>
+                    設備部數位系統
+                </h1>
+                <p id="userInfo" class="text-[10px] md:text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest ml-12">Loading...</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="toggleStatusDrawer()" class="flex items-center gap-2 bg-slate-700 border border-slate-600 px-4 py-2 rounded-xl text-xs font-black text-slate-200 hover:bg-slate-600 transition shadow-sm active:scale-95">
+                    ⏳ 申請進度
+                </button>
+                <button onclick="logout()" class="text-xs font-bold text-slate-400 hover:text-rose-400 transition hidden md:block">登出</button>
+            </div>
+        </header>
+
+        <section>
+            <h2 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-4 px-2 flex items-center">
+                <span class="mr-2">🔎</span> 可借用設備清單
+            </h2>
+            <div id="equipmentList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                </div>
+        </section>
+    </div>
+
+    <button onclick="toggleCartDrawer()" class="fixed bottom-6 right-6 bg-blue-600 text-white p-4 rounded-2xl shadow-blue-900/50 shadow-2xl transition hover:scale-110 active:scale-95 z-40">
+        <span class="text-xl">🛒</span>
+        <span id="cartBadge" class="absolute -top-2 -right-2 bg-rose-500 text-[10px] font-black px-2 py-1 rounded-full border-2 border-slate-900 hidden">0</span>
+    </button>
+
+    <div id="cartModal" class="fixed inset-0 bg-slate-900/60 hidden z-50 flex justify-end backdrop-blur-sm">
+        <div id="cartDrawer" class="drawer bg-slate-800 w-full max-w-md h-full shadow-2xl flex flex-col transform translate-x-full border-l border-slate-700">
+            <div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-900/50">
+                <h2 class="text-lg font-black text-white">預約申請夾</h2>
+                <button onclick="toggleCartDrawer()" class="text-slate-400 hover:text-rose-400 text-3xl font-light">&times;</button>
+            </div>
+            <div id="cartItems" class="p-6 flex-1 overflow-y-auto space-y-4 no-scrollbar text-sm"></div>
+            <div class="p-6 border-t border-slate-700 bg-slate-800">
+                <button onclick="submitCheckout()" id="checkoutBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl shadow-lg transition disabled:bg-slate-700 disabled:text-slate-500 disabled:shadow-none uppercase tracking-widest text-xs">
+                    送出借用申請
+                </button>
             </div>
         </div>
-        <button onclick="logout()" class="text-sm font-bold text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg transition">登出</button>
-    </header>
+    </div>
 
-    <main class="p-6 max-w-5xl mx-auto pb-24">
-        <h2 class="text-sm font-bold text-slate-400 mb-4 flex items-center gap-2">🔎 可借用設備清單</h2>
-        <div id="equipmentList" class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <p class="text-slate-500 text-sm col-span-full">系統載入中...</p>
-        </div>
-    </main>
-
-    <div id="cartPanel" class="fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 p-4 shadow-2xl hidden z-50">
-        <div class="max-w-5xl mx-auto flex justify-between items-center">
-            <div id="cartItems" class="text-sm font-bold text-slate-300 flex-1 flex flex-wrap gap-2"></div>
-            <button onclick="submitBorrow()" class="bg-blue-600 hover:bg-blue-500 text-white font-black px-6 py-3 rounded-xl transition shadow-lg whitespace-nowrap ml-4">送出申請</button>
+    <div id="statusModal" class="fixed inset-0 bg-slate-900/60 hidden z-50 flex justify-end backdrop-blur-sm">
+        <div id="statusDrawer" class="drawer bg-slate-800 w-full max-w-md h-full shadow-2xl flex flex-col transform translate-x-full border-l border-slate-700">
+            <div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-900/50">
+                <h2 class="text-lg font-black text-white">我的申請進度</h2>
+                <button onclick="toggleStatusDrawer()" class="text-slate-400 hover:text-rose-400 text-3xl font-light">&times;</button>
+            </div>
+            <div class="p-4 bg-slate-900/30 border-b border-slate-700 flex justify-center">
+                <button onclick="fetchMyStatus()" class="text-xs font-black text-blue-400 bg-slate-700 px-4 py-2 rounded-xl shadow-sm hover:bg-slate-600 transition flex items-center gap-2 border border-slate-600">
+                    🔄 重新整理進度
+                </button>
+            </div>
+            <div id="statusList" class="p-6 flex-1 overflow-y-auto space-y-4 no-scrollbar">
+                </div>
         </div>
     </div>
 
     <script>
-        // 🚨 請換成您的 Cloud Run 網址
-        const API_URL = "https://student-api-174932950003.asia-east1.run.app"; 
-        let cart = {};
+        const API_URL = "https://student-api-174932950003.asia-east1.run.app";
+        let cart = [];
 
-        window.onload = () => {
-            const sid = localStorage.getItem('student_id');
-            const sname = localStorage.getItem('student_name');
-            if (!sid || !sname) return window.location.href = 'index.html';
-            document.getElementById('userInfo').innerText = `${sname} (${sid})`;
-            loadEquipments();
+        window.onload = function() {
+            const name = localStorage.getItem('studentName'), id = localStorage.getItem('studentId'), org = localStorage.getItem('studentOrg'), phone = localStorage.getItem('studentPhone');
+            if(name && id && org && phone) {
+                document.getElementById('userInfo').innerText = `${name} (${id}) / ${org}`;
+            } else { window.location.href = 'index.html'; return; }
+            
+            fetch(`${API_URL}/settings`).then(res => res.json()).then(data => {
+                if (data['維護模式'] === '開啟') {
+                    const overlay = document.getElementById('maintenanceOverlay');
+                    overlay.classList.remove('hidden'); overlay.classList.add('flex');
+                    return; 
+                }
+                if (data['系統公告']) {
+                    document.getElementById('announcementText').innerText = data['系統公告'];
+                    document.getElementById('announcementBanner').classList.remove('hidden');
+                }
+                loadEquipments(); 
+                loadCartFromStorage();
+            }).catch(() => {
+                loadEquipments(); loadCartFromStorage();
+            });
         };
 
-        function logout() {
-            localStorage.clear();
-            window.location.href = 'index.html';
-        }
-
+        // --- 載入設備 (深色卡片) ---
         function loadEquipments() {
             fetch(`${API_URL}/equipments`).then(res => res.json()).then(data => {
                 const container = document.getElementById('equipmentList');
                 container.innerHTML = '';
                 for (const key in data) {
                     const item = data[key];
-                    let limit = parseInt(item['單次借用上限']) || parseInt(item['借用上限']);
-                    if (isNaN(limit) || limit <= 0) limit = 1; 
+                    const limit = parseInt(item['單次借用上限']) || parseInt(item['借用上限']) || 1; 
                     const stock = parseInt(item['剩餘數量']) || 0;
                     const realMax = Math.min(stock, limit);
                     
@@ -74,55 +142,157 @@
                             <div class="flex items-center gap-2 mt-auto">
                                 <select id="qty-${key}" class="bg-slate-700 text-white text-xs font-bold p-2.5 rounded-xl outline-none border border-slate-600 flex-1">${options}</select>
                                 <button onclick="addToCart('${key}', '${item['設備名稱']}', ${limit}, ${stock})" 
-                                    class="bg-blue-600 text-white text-[10px] font-black px-4 py-3 rounded-xl transition active:scale-95 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500"
+                                    class="bg-blue-600 text-white text-[10px] font-black px-4 py-3 rounded-xl transition active:scale-95 disabled:bg-slate-700 disabled:text-slate-500 hover:bg-blue-500"
                                     ${stock <= 0 ? 'disabled' : ''}>+ 加入</button>
                             </div>
                         </div>`;
                 }
-            }).catch(() => {
-                document.getElementById('equipmentList').innerHTML = `<p class="text-rose-400 text-sm col-span-full">無法連線到伺服器，請稍後再試</p>`;
             });
         }
 
+        function toggleCartDrawer() {
+            const m = document.getElementById('cartModal'), d = document.getElementById('cartDrawer');
+            if(m.classList.contains('hidden')) { m.classList.remove('hidden'); setTimeout(() => d.classList.remove('translate-x-full'), 10); }
+            else { d.classList.add('translate-x-full'); setTimeout(() => m.classList.add('hidden'), 300); }
+        }
+
+        function toggleStatusDrawer() {
+            const m = document.getElementById('statusModal'), d = document.getElementById('statusDrawer');
+            if(m.classList.contains('hidden')) { 
+                m.classList.remove('hidden'); setTimeout(() => d.classList.remove('translate-x-full'), 10);
+                fetchMyStatus(); 
+            }
+            else { d.classList.add('translate-x-full'); setTimeout(() => m.classList.add('hidden'), 300); }
+        }
+
+        // --- 進度查詢 (深色模式狀態配色) ---
+        function fetchMyStatus() {
+            const sid = localStorage.getItem('studentId');
+            const list = document.getElementById('statusList');
+            list.innerHTML = '<div class="text-center py-10 text-slate-400 font-bold animate-pulse">📡 讀取中...</div>';
+            
+            Promise.all([
+                fetch(`${API_URL}/settings`).then(res => res.json()),
+                fetch(`${API_URL}/transactions`).then(res => res.json())
+            ]).then(([settingsData, data]) => {
+                const MAX_DAYS = parseInt(settingsData['借用天數限制']) || 14;
+                const myItems = Object.values(data)
+                    .filter(t => t.租借人員學號 === sid && t.狀態 !== "已歸還" && t.狀態 !== "已駁回")
+                    .sort((a,b) => a.交易編號 - b.交易編號);
+
+                if (myItems.length > 0) {
+                    list.innerHTML = '';
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+
+                    myItems.forEach(t => {
+                        const isPending = t.狀態 === "待審核";
+                        const isBorrowing = t.狀態 === "借用中";
+                        
+                        let isOverdue = false;
+                        if (isBorrowing && t.借用時間) {
+                            const bDate = new Date(t.借用時間.replace(/-/g, '/'));
+                            bDate.setHours(0, 0, 0, 0);
+                            const diffDays = Math.floor((today - bDate) / (1000 * 60 * 60 * 24));
+                            if (diffDays > MAX_DAYS) isOverdue = true;
+                        }
+
+                        // 深色模式的卡片配色
+                        let theme = "border-blue-700/50 bg-blue-900/20";
+                        let tag = "bg-blue-900/60 text-blue-400";
+                        let icon = '📦';
+                        let warnText = '';
+                        
+                        if (isPending) {
+                            theme = "border-amber-700/50 bg-amber-900/20";
+                            tag = "bg-amber-900/60 text-amber-400";
+                            icon = '<span class="animate-pulse">⏳</span>';
+                        } else if (isOverdue) {
+                            theme = "border-rose-700/50 bg-rose-900/20";
+                            tag = "bg-rose-600 text-white font-bold animate-pulse";
+                            icon = '<span class="text-rose-500">⚠️</span>';
+                            warnText = '<div class="text-[10px] text-rose-500 font-black mt-1">請盡速歸還設備！</div>';
+                        }
+                        
+                        list.innerHTML += `
+                            <div class="flex items-center justify-between p-4 rounded-2xl border ${theme}">
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="text-[13px] font-black text-white">${t.設備名稱}</span>
+                                        <span class="text-[9px] font-black px-2 py-0.5 rounded-md ${tag} uppercase tracking-tighter">${t.狀態}</span>
+                                    </div>
+                                    <div class="text-[10px] text-slate-400 font-medium font-mono tracking-tight">ID: #${t.交易編號}</div>
+                                    ${warnText}
+                                </div>
+                                <div class="text-xl">${icon}</div>
+                            </div>`;
+                    });
+                } else { 
+                    list.innerHTML = `<div class="text-center py-10 text-slate-500 italic font-bold">目前沒有進行中的借用</div>`; 
+                }
+            }).catch(() => {
+                list.innerHTML = `<div class="text-center py-10 text-rose-500 font-bold">連線失敗，請重新整理</div>`;
+            });
+        }
+
+        // --- 購物車與結帳 (深色購物車介面) ---
         function addToCart(id, name, limit, stock) {
             const qty = parseInt(document.getElementById(`qty-${id}`).value);
-            if (qty <= 0) return;
-            cart[id] = { name, qty };
-            updateCartUI();
+            const idx = cart.findIndex(i => i.id === id);
+            const total = (idx !== -1 ? cart[idx].qty : 0) + qty;
+            if(total > limit || total > stock) return alert("超過申請上限或庫存不足！");
+            if(idx !== -1) cart[idx].qty = total; else cart.push({ id, name, qty });
+            saveCartToStorage(); updateCartUI();
         }
 
         function updateCartUI() {
-            const panel = document.getElementById('cartPanel');
-            const itemsDiv = document.getElementById('cartItems');
-            const keys = Object.keys(cart);
-            if (keys.length === 0) {
-                panel.classList.add('hidden');
-                return;
-            }
-            panel.classList.remove('hidden');
-            itemsDiv.innerHTML = keys.map(k => `<span class="bg-slate-900 text-blue-300 border border-blue-900 px-3 py-1 rounded-lg">${cart[k].name} x${cart[k].qty}</span>`).join('');
-        }
-
-        function submitBorrow() {
-            const sid = localStorage.getItem('student_id');
-            const sname = localStorage.getItem('student_name');
-            const items = Object.keys(cart).map(k => ({ id: k, name: cart[k].name, qty: cart[k].qty }));
-            
-            fetch(`${API_URL}/borrow_batch`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ "租借人員學號": sid, "租借人員姓名": sname, "設備清單": items })
-            }).then(res => res.json()).then(data => {
-                if (data.成功) {
-                    alert('申請成功！系統已通知設備部審核。');
-                    cart = {};
-                    updateCartUI();
-                    loadEquipments();
-                } else {
-                    alert('申請失敗：' + data.訊息);
-                }
+            const badge = document.getElementById('cartBadge'), items = document.getElementById('cartItems'), btn = document.getElementById('checkoutBtn');
+            badge.innerText = cart.length; cart.length > 0 ? badge.classList.remove('hidden') : badge.classList.add('hidden');
+            btn.disabled = cart.length === 0;
+            items.innerHTML = cart.length === 0 ? `<div class="text-center py-10 text-slate-500 italic font-bold">清單目前是空的</div>` : '';
+            cart.forEach(item => {
+                items.innerHTML += `
+                    <div class="flex justify-between items-center border-b border-slate-700 pb-4">
+                        <div class="flex-1">
+                            <p class="font-bold text-white text-[13px]">${item.name}</p>
+                            <div class="flex items-center mt-2 bg-slate-700 w-fit rounded-lg p-1 border border-slate-600">
+                                <button onclick="updateCartItemQty('${item.id}', -1)" class="w-6 h-6 bg-slate-600 hover:bg-slate-500 rounded shadow-sm text-white font-bold transition">-</button>
+                                <span class="px-3 font-mono font-bold text-xs text-white">${item.qty}</span>
+                                <button onclick="updateCartItemQty('${item.id}', 1)" class="w-6 h-6 bg-slate-600 hover:bg-slate-500 rounded shadow-sm text-white font-bold transition">+</button>
+                            </div>
+                        </div>
+                        <button onclick="cart.splice(cart.findIndex(i=>i.id==='${item.id}'),1);saveCartToStorage();updateCartUI();" class="text-slate-400 hover:text-rose-400 text-[10px] font-black uppercase ml-4 p-2 transition">移除</button>
+                    </div>`;
             });
         }
+
+        function submitCheckout() {
+            const sid = localStorage.getItem('studentId'), sname = localStorage.getItem('studentName'), sorg = localStorage.getItem('studentOrg'), sphone = localStorage.getItem('studentPhone');
+            const btn = document.getElementById('checkoutBtn');
+            btn.innerText = "⏳ 傳送中..."; btn.disabled = true;
+            fetch(`${API_URL}/borrow_batch`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ "租借人員學號": sid, "租借人員姓名": `${sname} (${sorg}) - ${sphone}`, "設備清單": cart })
+            }).then(res => res.json()).then(data => {
+                if(data.成功) { 
+                    alert("✅ 申請成功！"); 
+                    cart = []; saveCartToStorage(); updateCartUI(); toggleCartDrawer(); loadEquipments(); 
+                    setTimeout(() => toggleStatusDrawer(), 500);
+                } else alert("❌ 失敗：" + data.訊息);
+            }).finally(() => { btn.innerText = "送出借用申請"; btn.disabled = false; });
+        }
+
+        function updateCartItemQty(id, change) {
+            const idx = cart.findIndex(i => i.id === id);
+            if(idx === -1) return;
+            const next = cart[idx].qty + change;
+            if(next <= 0) { if(confirm("移除此項？")) cart.splice(idx, 1); } else cart[idx].qty = next;
+            saveCartToStorage(); updateCartUI();
+        }
+
+        function saveCartToStorage() { localStorage.setItem('shoppingCart', JSON.stringify(cart)); }
+        function loadCartFromStorage() { const s = localStorage.getItem('shoppingCart'); if(s) { cart = JSON.parse(s); updateCartUI(); } }
+        function logout() { localStorage.clear(); window.location.href = 'index.html'; }
     </script>
 </body>
 </html>
