@@ -91,26 +91,37 @@
         };
 
         // --- 載入設備 ---
+        // --- 載入設備 ---
         function loadEquipments() {
             fetch(`${API_URL}/equipments`).then(res => res.json()).then(data => {
                 const container = document.getElementById('equipmentList');
                 container.innerHTML = '';
                 for (const key in data) {
                     const item = data[key];
-                    const realMax = Math.min(item.剩餘數量, item.借用上限);
-                    let options = realMax > 0 ? Array.from({length: realMax}, (_, i) => `<option value="${i+1}">${i+1}</option>`).join('') : `<option value="0">已領完</option>`;
+                    
+                    // 🌟 關鍵修正：對齊試算表的標題名稱「單次借用上限」，並加上數字轉換與防呆機制
+                    const limit = parseInt(item['單次借用上限']) || parseInt(item['借用上限']) || 1; 
+                    const stock = parseInt(item['剩餘數量']) || 0;
+                    
+                    // 計算下拉選單的最大值 (庫存跟上限，取比較小的那個)
+                    const realMax = Math.min(stock, limit);
+                    
+                    // 產生下拉選單選項
+                    let options = realMax > 0 
+                        ? Array.from({length: realMax}, (_, i) => `<option value="${i+1}">${i+1}</option>`).join('') 
+                        : `<option value="0">已領完</option>`;
                     
                     container.innerHTML += `
                         <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between hover:border-blue-200 hover:shadow-md transition h-full">
                             <div class="mb-4">
-                                <h3 class="text-sm font-black text-slate-800 leading-snug">${item.設備名稱}</h3>
-                                <p class="text-[11px] text-slate-400 mt-1">可用庫存 <span class="${item.剩餘數量 > 0 ? 'text-blue-500' : 'text-rose-400'} font-bold">${item.剩餘數量}</span></p>
+                                <h3 class="text-sm font-black text-slate-800 leading-snug">${item['設備名稱']}</h3>
+                                <p class="text-[11px] text-slate-400 mt-1">可用庫存 <span class="${stock > 0 ? 'text-blue-500' : 'text-rose-400'} font-bold">${stock}</span></p>
                             </div>
                             <div class="flex items-center gap-2 mt-auto">
                                 <select id="qty-${key}" class="bg-slate-50 text-xs font-bold p-2.5 rounded-xl outline-none border border-slate-100 flex-1">${options}</select>
-                                <button onclick="addToCart('${key}', '${item.設備名稱}', ${item.借用上限}, ${item.剩餘數量})" 
+                                <button onclick="addToCart('${key}', '${item['設備名稱']}', ${limit}, ${stock})" 
                                     class="bg-slate-900 text-white text-[10px] font-black px-4 py-3 rounded-xl transition active:scale-95 disabled:bg-slate-100 disabled:text-slate-300"
-                                    ${item.剩餘數量 === 0 ? 'disabled' : ''}>+ 加入</button>
+                                    ${stock <= 0 ? 'disabled' : ''}>+ 加入</button>
                             </div>
                         </div>`;
                 }
