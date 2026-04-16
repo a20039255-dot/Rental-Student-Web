@@ -40,14 +40,14 @@
         window.onload = () => {
             const sid = localStorage.getItem('student_id');
             const sname = localStorage.getItem('student_name');
-            if (!sid || !sname) return window.location.href = 'student-login.html';
+            if (!sid || !sname) return window.location.href = 'index.html';
             document.getElementById('userInfo').innerText = `${sname} (${sid})`;
             loadEquipments();
         };
 
         function logout() {
             localStorage.clear();
-            window.location.href = 'student-login.html';
+            window.location.href = 'index.html';
         }
 
         function loadEquipments() {
