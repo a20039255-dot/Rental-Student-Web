@@ -119,34 +119,76 @@
         };
 
         // --- 載入設備 (深色卡片) ---
+        // --- 載入設備 (防囤設備升級版) ---
         function loadEquipments() {
-            fetch(`${API_URL}/equipments`).then(res => res.json()).then(data => {
-                const container = document.getElementById('equipmentList');
-                container.innerHTML = '';
-                for (const key in data) {
-                    const item = data[key];
+            const sid = localStorage.getItem('studentId'); // 取得當前登入學號
+            const listContainer = document.getElementById('equipmentList');
+            listContainer.innerHTML = '<p class="text-slate-400 text-sm col-span-full">📡 載入庫存與個人配額中...</p>';
+
+            Promise.all([
+                fetch(`${API_URL}/equipments`).then(res => res.json()),
+                fetch(`${API_URL}/transactions`).then(res => res.json())
+            ]).then(([equipData, transData]) => {
+                
+                // 1. 計算該同學目前「未歸還」的設備數量
+                let userBorrowed = {};
+                if (transData) {
+                    Object.values(transData).forEach(t => {
+                        // 只要是他的學號，且狀態是待審核或借用中，就算佔用配額
+                        if (t['租借人員學號'].includes(sid) && (t['狀態'] === '待審核' || t['狀態'] === '借用中')) {
+                            let eName = t['設備名稱'];
+                            userBorrowed[eName] = (userBorrowed[eName] || 0) + 1;
+                        }
+                    });
+                }
+
+                listContainer.innerHTML = '';
+                
+                for (const key in equipData) {
+                    const item = equipData[key];
+                    const eName = item['設備名稱'];
                     const limit = parseInt(item['單次借用上限']) || parseInt(item['借用上限']) || 1; 
                     const stock = parseInt(item['剩餘數量']) || 0;
-                    const realMax = Math.min(stock, limit);
                     
-                    let options = realMax > 0 
-                        ? Array.from({length: realMax}, (_, i) => `<option value="${i+1}">${i+1}</option>`).join('') 
-                        : `<option value="0">已領完</option>`;
+                    // 2. 核心邏輯：計算剩餘可借配額 (上限 - 已經借的)
+                    const alreadyBorrowed = userBorrowed[eName] || 0;
+                    const availableQuota = Math.max(0, limit - alreadyBorrowed);
+                    const realMax = Math.min(stock, availableQuota);
                     
-                    container.innerHTML += `
+                    let options = "";
+                    let btnState = "";
+                    let btnText = "+ 加入";
+
+                    // 判斷按鈕狀態
+                    if (alreadyBorrowed >= limit) {
+                        options = `<option value="0">已達上限</option>`;
+                        btnState = "disabled";
+                        btnText = "配額已滿";
+                    } else if (stock <= 0) {
+                        options = `<option value="0">已領完</option>`;
+                        btnState = "disabled";
+                        btnText = "庫存不足";
+                    } else {
+                        options = Array.from({length: realMax}, (_, i) => `<option value="${i+1}">${i+1}</option>`).join('');
+                    }
+                    
+                    listContainer.innerHTML += `
                         <div class="bg-slate-800 p-5 rounded-3xl border border-slate-700 shadow-md flex flex-col justify-between hover:border-blue-500 hover:shadow-lg transition h-full">
                             <div class="mb-4">
-                                <h3 class="text-sm font-black text-white leading-snug">${item['設備名稱']}</h3>
-                                <p class="text-[11px] text-slate-400 mt-1">可用庫存 <span class="${stock > 0 ? 'text-blue-400' : 'text-rose-400'} font-bold">${stock}</span></p>
+                                <h3 class="text-sm font-black text-white leading-snug">${eName}</h3>
+                                <p class="text-[11px] text-slate-400 mt-1">現場庫存 <span class="${stock > 0 ? 'text-blue-400' : 'text-rose-400'} font-bold">${stock}</span></p>
+                                <p class="text-[10px] text-amber-400 mt-0.5 font-bold tracking-wider">個人配額：已借 ${alreadyBorrowed} / 上限 ${limit}</p>
                             </div>
                             <div class="flex items-center gap-2 mt-auto">
-                                <select id="qty-${key}" class="bg-slate-700 text-white text-xs font-bold p-2.5 rounded-xl outline-none border border-slate-600 flex-1">${options}</select>
-                                <button onclick="addToCart('${key}', '${item['設備名稱']}', ${limit}, ${stock})" 
+                                <select id="qty-${key}" class="bg-slate-700 text-white text-xs font-bold p-2.5 rounded-xl outline-none border border-slate-600 flex-1" ${btnState}>${options}</select>
+                                <button onclick="addToCart('${key}', '${eName}', ${availableQuota}, ${stock})" 
                                     class="bg-blue-600 text-white text-[10px] font-black px-4 py-3 rounded-xl transition active:scale-95 disabled:bg-slate-700 disabled:text-slate-500 hover:bg-blue-500"
-                                    ${stock <= 0 ? 'disabled' : ''}>+ 加入</button>
+                                    ${btnState}>${btnText}</button>
                             </div>
                         </div>`;
                 }
+            }).catch(e => {
+                listContainer.innerHTML = `<p class="text-rose-400 text-sm col-span-full">無法連線到伺服器，請稍後再試</p>`;
             });
         }
 
@@ -235,12 +277,17 @@
             });
         }
 
-        // --- 購物車與結帳 (深色購物車介面) ---
-        function addToCart(id, name, limit, stock) {
+        // --- 購物車邏輯 (防超額判定) ---
+        function addToCart(id, name, availableQuota, stock) {
             const qty = parseInt(document.getElementById(`qty-${id}`).value);
+            if(qty <= 0) return;
             const idx = cart.findIndex(i => i.id === id);
             const total = (idx !== -1 ? cart[idx].qty : 0) + qty;
-            if(total > limit || total > stock) return alert("超過申請上限或庫存不足！");
+            
+            // 🌟 這裡使用 availableQuota (剩餘配額) 來把關
+            if(total > availableQuota) return alert(`❌ 超過配額！這項設備您最多只能再借 ${availableQuota} 個。`);
+            if(total > stock) return alert("❌ 現場庫存不足！");
+            
             if(idx !== -1) cart[idx].qty = total; else cart.push({ id, name, qty });
             saveCartToStorage(); updateCartUI();
         }
