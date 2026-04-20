@@ -228,15 +228,14 @@
             ]).then(([settingsData, data]) => {
                 const MAX_DAYS = parseInt(settingsData['借用天數限制']) || 14;
                 
-                // 🌟 使用 Object.values 安全轉陣列，並將 === 改為 .includes() 避免格式對不齊
                 const myItems = Object.values(data || {})
-                 .filter(t => {
-                 let rowSid = t['借用人學號'] || t['租借人員學號'] || '';
-                    let status = t['狀態'] || '';
-                    // 🌟 這裡完美對齊了「借用人學號」與「駁回」
-                    return rowSid.includes(sid) && status !== "已歸還" && status !== "駁回";
+                    .filter(t => {
+                        let rowSid = t['借用人學號'] || t['租借人員學號'] || '';
+                        let status = t['狀態'] || '';
+                        // 🌟 修復點 1：拿掉 !== "駁回"，讓學生能看到被退回的單
+                        return rowSid.includes(sid) && status !== "已歸還";
                     })
-                    .sort((a,b) => a['交易編號'] - b['交易編號']);
+                    .sort((a,b) => b['交易編號'] - a['交易編號']); // 改成大到小排序，最新申請的在最上面
 
                 if (myItems.length > 0) {
                     list.innerHTML = '';
@@ -246,6 +245,7 @@
                     myItems.forEach(t => {
                         const isPending = t['狀態'] === "待審核";
                         const isBorrowing = t['狀態'] === "借用中";
+                        const isRejected = t['狀態'] === "駁回"; // 🌟 抓出駁回狀態
                         
                         let isOverdue = false;
                         if (isBorrowing && t['借用時間']) {
@@ -255,6 +255,7 @@
                             if (diffDays > MAX_DAYS) isOverdue = true;
                         }
 
+                        // 預設樣式：借用中
                         let theme = "border-blue-700/50 bg-blue-900/20";
                         let tag = "bg-blue-900/60 text-blue-400";
                         let icon = '📦';
@@ -264,6 +265,12 @@
                             theme = "border-amber-700/50 bg-amber-900/20";
                             tag = "bg-amber-900/60 text-amber-400";
                             icon = '<span class="animate-pulse">⏳</span>';
+                        } else if (isRejected) {
+                            // 🌟 修復點 2：駁回專屬 UI (灰暗色調 + 刪除線)
+                            theme = "border-slate-700 bg-slate-800/50 opacity-75"; 
+                            tag = "bg-slate-700 text-slate-400";
+                            icon = '<span class="text-slate-500">❌</span>';
+                            warnText = '<div class="text-[10px] text-rose-400 font-black mt-1">此申請已被幹部退回</div>';
                         } else if (isOverdue) {
                             theme = "border-rose-700/50 bg-rose-900/20";
                             tag = "bg-rose-600 text-white font-bold animate-pulse";
@@ -275,7 +282,7 @@
                             <div class="flex items-center justify-between p-4 rounded-2xl border ${theme}">
                                 <div>
                                     <div class="flex items-center gap-2 mb-1">
-                                        <span class="text-[13px] font-black text-white">${t['設備名稱']}</span>
+                                        <span class="text-[13px] font-black text-white ${isRejected ? 'line-through text-slate-400' : ''}">${t['設備名稱']}</span>
                                         <span class="text-[9px] font-black px-2 py-0.5 rounded-md ${tag} uppercase tracking-tighter">${t['狀態']}</span>
                                     </div>
                                     <div class="text-[10px] text-slate-400 font-medium font-mono tracking-tight">ID: #${t['交易編號']}</div>
