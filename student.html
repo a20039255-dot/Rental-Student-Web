@@ -232,30 +232,38 @@
                     .filter(t => {
                         let rowSid = t['借用人學號'] || t['租借人員學號'] || '';
                         let status = t['狀態'] || '';
-                        // 🌟 修復點 1：拿掉 !== "駁回"，讓學生能看到被退回的單
-                        return rowSid.includes(sid) && status !== "已歸還";
+                        return rowSid.includes(sid) && status !== "已歸還"; 
                     })
-                    .sort((a,b) => b['交易編號'] - a['交易編號']); // 改成大到小排序，最新申請的在最上面
+                    .sort((a,b) => b['交易編號'] - a['交易編號']);
 
                 if (myItems.length > 0) {
                     list.innerHTML = '';
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
+                    
+                    let visibleCount = 0; // 用來計算畫面上真正顯示了幾筆
 
                     myItems.forEach(t => {
                         const isPending = t['狀態'] === "待審核";
                         const isBorrowing = t['狀態'] === "借用中";
-                        const isRejected = t['狀態'] === "駁回"; // 🌟 抓出駁回狀態
+                        const isRejected = t['狀態'] === "駁回";
                         
-                        let isOverdue = false;
-                        if (isBorrowing && t['借用時間']) {
+                        // 計算這筆單子借了幾天
+                        let diffDays = 0;
+                        if (t['借用時間']) {
                             const bDate = new Date(t['借用時間'].replace(/-/g, '/'));
                             bDate.setHours(0, 0, 0, 0);
-                            const diffDays = Math.floor((today - bDate) / (1000 * 60 * 60 * 24));
-                            if (diffDays > MAX_DAYS) isOverdue = true;
+                            diffDays = Math.floor((today - bDate) / (1000 * 60 * 60 * 24));
                         }
 
-                        // 預設樣式：借用中
+                        // 🌟 終極巧思：如果是「駁回」，且已經過了 1 天，就直接跳過不畫出來！
+                        if (isRejected && diffDays >= 1) {
+                            return; 
+                        }
+
+                        visibleCount++; // 如果沒被跳過，顯示數量 +1
+                        let isOverdue = (isBorrowing && diffDays > MAX_DAYS);
+
                         let theme = "border-blue-700/50 bg-blue-900/20";
                         let tag = "bg-blue-900/60 text-blue-400";
                         let icon = '📦';
@@ -266,8 +274,7 @@
                             tag = "bg-amber-900/60 text-amber-400";
                             icon = '<span class="animate-pulse">⏳</span>';
                         } else if (isRejected) {
-                            // 🌟 修復點 2：駁回專屬 UI (灰暗色調 + 刪除線)
-                            theme = "border-slate-700 bg-slate-800/50 opacity-75"; 
+                            theme = "border-slate-700 bg-slate-800/50 opacity-75";
                             tag = "bg-slate-700 text-slate-400";
                             icon = '<span class="text-slate-500">❌</span>';
                             warnText = '<div class="text-[10px] text-rose-400 font-black mt-1">此申請已被幹部退回</div>';
@@ -291,6 +298,12 @@
                                 <div class="text-xl">${icon}</div>
                             </div>`;
                     });
+
+                    // 如果過濾完發現畫面上根本沒有東西（例如全部都是過期的駁回單）
+                    if (visibleCount === 0) {
+                        list.innerHTML = `<div class="text-center py-10 text-slate-500 italic font-bold">目前沒有進行中的借用</div>`;
+                    }
+
                 } else { 
                     list.innerHTML = `<div class="text-center py-10 text-slate-500 italic font-bold">目前沒有進行中的借用</div>`; 
                 }
@@ -298,7 +311,6 @@
                 list.innerHTML = `<div class="text-center py-10 text-rose-500 font-bold">連線失敗，請重新整理</div>`;
             });
         }
-
         // --- 購物車邏輯 (保留您寫好的防超額判定) ---
         function addToCart(id, name, availableQuota, stock) {
             const qty = parseInt(document.getElementById(`qty-${id}`).value);
