@@ -133,7 +133,8 @@
                 if (transData) {
                     // 🌟 使用 Object.values 安全取出陣列，並加上 || {} 防空值
                     Object.values(transData || {}).forEach(t => {
-                        if (t['租借人員學號'] && t['租借人員學號'].includes(sid) && (t['狀態'] === '待審核' || t['狀態'] === '借用中')) {
+                        let rowSid = t['借用人學號'] || t['租借人員學號'] || '';
+                            if (rowSid.includes(sid) && (t['狀態'] === '待審核' || t['狀態'] === '借用中')) {
                             let eName = t['設備名稱'];
                             userBorrowed[eName] = (userBorrowed[eName] || 0) + 1;
                         }
@@ -229,7 +230,12 @@
                 
                 // 🌟 使用 Object.values 安全轉陣列，並將 === 改為 .includes() 避免格式對不齊
                 const myItems = Object.values(data || {})
-                    .filter(t => t['租借人員學號'] && t['租借人員學號'].includes(sid) && t['狀態'] !== "已歸還" && t['狀態'] !== "已駁回")
+                 .filter(t => {
+                 let rowSid = t['借用人學號'] || t['租借人員學號'] || '';
+                    let status = t['狀態'] || '';
+                    // 🌟 這裡完美對齊了「借用人學號」與「駁回」
+                    return rowSid.includes(sid) && status !== "已歸還" && status !== "駁回";
+                    })
                     .sort((a,b) => a['交易編號'] - b['交易編號']);
 
                 if (myItems.length > 0) {
